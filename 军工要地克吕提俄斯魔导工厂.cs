@@ -120,8 +120,8 @@ public class 军工要地克吕提俄斯魔导工厂
         if (!ParseObjectId(@event["SourceId"], out var sourceId)) return;
         if (!TryGetDurationMs(@event, out int durationMs)) return;
 
-        DrawDangerFan(accessory, sourceId, 100, 130, durationMs);
-        DrawSafeFan(accessory, sourceId, 100, 130, durationMs);
+        DrawDangerFan(accessory, sourceId, 120, 100, durationMs);
+        DrawSafeFan(accessory, sourceId, 120, 100, durationMs);
     }
 
     [ScriptMethod(name: "肉压杀_塔",
