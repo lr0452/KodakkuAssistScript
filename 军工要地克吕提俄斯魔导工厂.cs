@@ -10,7 +10,7 @@ namespace LRXR.Workspace.MyScripts;
     name: "军工要地克吕提俄斯魔导工厂",
     territorys: [1345],
     guid: "dbf88c7b-f119-423c-954c-26aa86e58704",
-    version: "0.0.0.1",
+    version: "0.0.0.2",
     author: "LRXR",
     note: "BOSS 1/2画图 BOSS3暂时未画")]
 public class 军工要地克吕提俄斯魔导工厂
@@ -42,19 +42,27 @@ public class 军工要地克吕提俄斯魔导工厂
     
     
     [ScriptMethod(
-        name: "AOE",
+        name: "屏幕提示",
         eventType: EventTypeEnum.StartCasting,
-        eventCondition: ["ActionId:regex:^(48896|50408)$"])]
-    public void Aoe(Event @event, ScriptAccessory accessory)
+        eventCondition: ["ActionId:regex:^(48896|50408|48920|48931)$"])]
+    public void 屏幕提示(Event @event, ScriptAccessory accessory)
     {
         int durationMs;
         try
         {
             durationMs = JsonConvert.DeserializeObject<int>(
                 @event["DurationMilliseconds"]);
+        }catch { return; }
+
+        if (@event["ActionId"] == "48931")
+        {
+            if (EnableTextPrompts) accessory.Method.TextInfo("持续移动到这个提示结束！", durationMs);
         }
-        catch { return; }
-        if (EnableTextPrompts) accessory.Method.TextInfo("AOE", durationMs);
+        else
+        {
+            if (EnableTextPrompts) accessory.Method.TextInfo("AOE", durationMs);
+        }
+       
     }
     
     // BOSS 1 装甲之眼
@@ -107,7 +115,7 @@ public class 军工要地克吕提俄斯魔导工厂
     [ScriptMethod(
         name: "点名分摊",
         eventType: EventTypeEnum.StartCasting,
-        eventCondition: ["ActionId:regex:^(48901|48887)$"])]
+        eventCondition: ["ActionId:regex:^(48901|48887|48930)$"])]
     public void 点名分摊(Event @event, ScriptAccessory accessory)
     {
         // 被点名玩家的 ID
@@ -145,7 +153,7 @@ public class 军工要地克吕提俄斯魔导工厂
     [ScriptMethod(
         name: "肉蛋",
         eventType: EventTypeEnum.StartCasting,
-        eventCondition: ["ActionId:regex:^(48869|48876|48868)$"])]
+        eventCondition: ["ActionId:regex:^(48869|48876|48868|50313)$"])]
     public void 肉蛋(Event @event, ScriptAccessory accessory)
     {
         // 提取 Boss 的 ID (十六进制字符串 → 数字)
@@ -287,6 +295,88 @@ public class 军工要地克吕提俄斯魔导工厂
     }
 
     // BOSS 3
+    [ScriptMethod(
+        name: "虚无黑暗",
+        eventType: EventTypeEnum.StartCasting,
+        eventCondition: ["ActionId:regex:^(50313)$"])]
+    public void 虚无黑暗(Event @event, ScriptAccessory accessory)
+    {
+        // 提取 Boss 的 ID (十六进制字符串 → 数字)
+        if (!ParseObjectId(@event["SourceId"], out var sourceId))
+            return;
+
+        // 提取读条时间
+        int durationMs;
+        try { durationMs = JsonConvert.DeserializeObject<int>(@event["DurationMilliseconds"]); }
+        catch { return; }
+        
+        float    width = 100;   
+        float    length = 100;  
+        var dp = accessory.Data.GetDefaultDrawProperties();
+        dp.Owner = sourceId;
+        dp.Scale = new(width, length);
+        dp.DestoryAt = durationMs;
+        dp.Color = accessory.Data.DefaultDangerColor;
+        accessory.Method.SendDraw(DrawModeEnum.Default, DrawTypeEnum.Rect, dp);
+    }
+    [ScriptMethod(
+        name: "废料光环",
+        eventType: EventTypeEnum.StartCasting,
+        eventCondition: ["ActionId:regex:^(48934|48940)$"])]
+    public void 废料光环(Event @event, ScriptAccessory accessory)
+    {
+        Vector3 towerPos;
+        try { towerPos = JsonConvert.DeserializeObject<Vector3>(@event["EffectPosition"]); }
+        catch { return; }
+
+        int durationMs;
+        try { durationMs = JsonConvert.DeserializeObject<int>(@event["DurationMilliseconds"]); }
+        catch { return; }
+
+        // 危险圈
+        var dp = accessory.Data.GetDefaultDrawProperties();
+        dp.Position = towerPos;
+        dp.Scale = new(7);                                
+        dp.DestoryAt = durationMs;
+        dp.Color = accessory.Data.DefaultDangerColor;
+        accessory.Method.SendDraw(DrawModeEnum.Default, DrawTypeEnum.Circle, dp);
+        
+    }
+    [ScriptMethod(
+        name: "废料瘴气",
+        eventType: EventTypeEnum.StartCasting,
+        eventCondition: ["ActionId:regex:^(48937|48943)$"])]
+    public void 废料瘴气(Event @event, ScriptAccessory accessory)
+    {
+        // 提取 Boss 位置
+        Vector3 bossPos;
+        try { bossPos = JsonConvert.DeserializeObject<Vector3>(@event["SourcePosition"]); }
+        catch { return; }
+
+        // 提取 Boss 朝向
+        double bossRotation;
+        try { bossRotation = JsonConvert.DeserializeObject<double>(@event["SourceRotation"]); }
+        catch { return; }
+
+        // 提取读条时间
+        int durationMs;
+        try { durationMs = JsonConvert.DeserializeObject<int>(@event["DurationMilliseconds"]); }
+        catch { return; }
+
+        float bossFacing = (float)bossRotation;
+
+        // 危险区 — 红色扇形 (Boss 面前 30°)
+        var dp = accessory.Data.GetDefaultDrawProperties();
+        dp.Position = bossPos;
+        dp.Rotation = bossFacing;
+        dp.Scale = new(100);
+        dp.Radian = ConvertDegree(30);
+        dp.DestoryAt = durationMs;
+        dp.Color = accessory.Data.DefaultDangerColor;
+        accessory.Method.SendDraw(DrawModeEnum.Default, DrawTypeEnum.Fan, dp);
+
+       
+    }
     // ============================================================
     // 辅助方法
     // ============================================================
