@@ -10,9 +10,9 @@ namespace LRXR.Workspace.MyScripts;
     name: "军工要地克吕提俄斯魔导工厂",
     territorys: [1345],
     guid: "dbf88c7b-f119-423c-954c-26aa86e58704",
-    version: "0.0.0.2",
+    version: "0.0.0.3",
     author: "LRXR",
-    note: "BOSS 1/2画图 BOSS3暂时未画")]
+    note: "初版已完成")]
 public class 军工要地克吕提俄斯魔导工厂
 {
     // ============================================================
@@ -38,21 +38,16 @@ public class 军工要地克吕提俄斯魔导工厂
         accessory.Method.RemoveDraw(".*");
     }
 
-    
-    
-    
-    [ScriptMethod(
-        name: "屏幕提示",
+    // ============================================================
+    // 通用技能方法
+    // ============================================================
+
+    [ScriptMethod(name: "屏幕提示",
         eventType: EventTypeEnum.StartCasting,
         eventCondition: ["ActionId:regex:^(48896|50408|48920|48931)$"])]
     public void 屏幕提示(Event @event, ScriptAccessory accessory)
     {
-        int durationMs;
-        try
-        {
-            durationMs = JsonConvert.DeserializeObject<int>(
-                @event["DurationMilliseconds"]);
-        }catch { return; }
+        if (!TryGetDurationMs(@event, out int durationMs)) return;
 
         if (@event["ActionId"] == "48931")
         {
@@ -62,323 +57,260 @@ public class 军工要地克吕提俄斯魔导工厂
         {
             if (EnableTextPrompts) accessory.Method.TextInfo("AOE", durationMs);
         }
-       
     }
-    
-    // BOSS 1 装甲之眼
 
-    [ScriptMethod(
-        name: "石化光束",
+    // ---- BOSS 1 装甲之眼 ----
+
+    [ScriptMethod(name: "石化光束",
         eventType: EventTypeEnum.StartCasting,
         eventCondition: ["ActionId:regex:^(50177|50178)$"])]
     public void 石化光束(Event @event, ScriptAccessory accessory)
     {
-        // 提取 Boss 位置
-        Vector3 bossPos;
-        try { bossPos = JsonConvert.DeserializeObject<Vector3>(@event["SourcePosition"]); }
-        catch { return; }
+        if (!TryGetBossTransform(@event, out var bossPos, out var bossFacing, out int durationMs))
+            return;
 
-        // 提取 Boss 朝向
-        double bossRotation;
-        try { bossRotation = JsonConvert.DeserializeObject<double>(@event["SourceRotation"]); }
-        catch { return; }
-
-        // 提取读条时间
-        int durationMs;
-        try { durationMs = JsonConvert.DeserializeObject<int>(@event["DurationMilliseconds"]); }
-        catch { return; }
-
-        float bossFacing = (float)bossRotation;
-
-        // 危险区 — 红色扇形 (Boss 面前 100°)
-        var dp = accessory.Data.GetDefaultDrawProperties();
-        dp.Position = bossPos;
-        dp.Rotation = bossFacing;
-        dp.Scale = new(100);
-        dp.Radian = ConvertDegree(100);
-        dp.DestoryAt = durationMs;
-        dp.Color = accessory.Data.DefaultDangerColor;
-        accessory.Method.SendDraw(DrawModeEnum.Default, DrawTypeEnum.Fan, dp);
-
-        // 安全区 — 绿色扇形 (Boss 背后 260°)
-        dp = accessory.Data.GetDefaultDrawProperties();
-        dp.Position = bossPos;
-        dp.Rotation = bossFacing + float.Pi;
-        dp.Scale = new(100);
-        dp.Radian = ConvertDegree(260);
-        dp.DestoryAt = durationMs;
-        dp.Color = accessory.Data.DefaultSafeColor;
-        accessory.Method.SendDraw(DrawModeEnum.Default, DrawTypeEnum.Fan, dp);
+        DrawDangerFan(accessory, bossPos, bossFacing, 100, 100, durationMs);
+        DrawSafeFan(accessory, bossPos, bossFacing, 100, 100, durationMs);
     }
 
-    
-    [ScriptMethod(
-        name: "点名分摊",
+    [ScriptMethod(name: "点名分摊",
         eventType: EventTypeEnum.StartCasting,
         eventCondition: ["ActionId:regex:^(48901|48887|48930)$"])]
     public void 点名分摊(Event @event, ScriptAccessory accessory)
     {
-        // 被点名玩家的 ID
-        if (!ParseObjectId(@event["TargetId"], out var targetId))
-            return;
+        if (!ParseObjectId(@event["TargetId"], out var targetId)) return;
+        if (!TryGetDurationMs(@event, out int durationMs)) return;
 
-        int durationMs;
-        try { durationMs = JsonConvert.DeserializeObject<int>(@event["DurationMilliseconds"]); }
-        catch { return; }
-
-        // 分摊圈 — 绑在被点名玩家身上, 人动圈跟着动
-        var dp = accessory.Data.GetDefaultDrawProperties();
-        dp.Owner = targetId;
-        dp.Scale = new(6);
-        dp.DestoryAt = durationMs;
-        dp.Color = accessory.Data.DefaultSafeColor;
-        accessory.Method.SendDraw(DrawModeEnum.Default, DrawTypeEnum.Circle, dp);
-
-        // 四人指路 — 箭头指向被点名玩家, 人动箭头也跟着动
-        for (int i = 0; i < 4; i++)
-        {
-            dp = accessory.Data.GetDefaultDrawProperties();
-            dp.Owner = accessory.Data.PartyList[i];
-            dp.TargetObject = targetId;
-            dp.Scale = new(2);
-            dp.ScaleMode |= ScaleMode.YByDistance;
-            dp.Color = accessory.Data.DefaultSafeColor;
-            dp.DestoryAt = durationMs;
-            accessory.Method.SendDraw(DrawModeEnum.Imgui, DrawTypeEnum.Displacement, dp);
-        }
+        DrawCircleOnTarget(accessory, targetId, 6, durationMs, accessory.Data.DefaultSafeColor);
+        GuideAllToTarget(accessory, targetId, durationMs);
     }
-    
-    // BOSS 2 乔尔特
 
-    [ScriptMethod(
-        name: "肉蛋",
+    // ---- BOSS 2 乔尔特 ----
+
+    [ScriptMethod(name: "肉蛋",
         eventType: EventTypeEnum.StartCasting,
         eventCondition: ["ActionId:regex:^(48869|48876|48868|50313)$"])]
     public void 肉蛋(Event @event, ScriptAccessory accessory)
     {
-        // 提取 Boss 的 ID (十六进制字符串 → 数字)
-        if (!ParseObjectId(@event["SourceId"], out var sourceId))
-            return;
+        if (!ParseObjectId(@event["SourceId"], out var sourceId)) return;
+        if (!TryGetDurationMs(@event, out int durationMs)) return;
 
-        // 提取读条时间
-        int durationMs;
-        try { durationMs = JsonConvert.DeserializeObject<int>(@event["DurationMilliseconds"]); }
-        catch { return; }
+        float width = 16;
+        float length = @event["ActionId"] == "48876" ? 90 : 60;
 
-        // 两个 ActionId 画的矩形大小不一样, 按 ID 区分宽和长
-        float width, length;
-        if (@event["ActionId"] == "48876")
-        {
-            width = 16;  
-            length = 90;  
-        }
-        else  
-        {
-            width = 16;   
-            length = 60;  
-        }
-
-        var dp = accessory.Data.GetDefaultDrawProperties();
-        dp.Owner = sourceId;
-        dp.Scale = new(width, length);
-        dp.DestoryAt = durationMs;
-        dp.Color = accessory.Data.DefaultDangerColor;
-        accessory.Method.SendDraw(DrawModeEnum.Default, DrawTypeEnum.Rect, dp);
+        DrawRectOnOwner(accessory, sourceId, width, length, durationMs, accessory.Data.DefaultDangerColor);
     }
 
-    [ScriptMethod(
-        name: "肉压杀",
+    [ScriptMethod(name: "肉压杀",
         eventType: EventTypeEnum.StartCasting,
         eventCondition: ["ActionId:48878"])]
     public void 肉压杀(Event @event, ScriptAccessory accessory)
     {
-        /*if (!ParseObjectId(@event["SourceId"], out var sourceId))
-            return;*/
-
-        int durationMs;
-        try { durationMs = JsonConvert.DeserializeObject<int>(@event["DurationMilliseconds"]); }
-        catch { return; }
-
-        /*// 红线: Boss → 玩家 (击退来源)
-        var dp = accessory.Data.GetDefaultDrawProperties();
-        dp.Owner = sourceId;
-        dp.TargetObject = accessory.Data.Me;
-        dp.ScaleMode |= ScaleMode.YByDistance;
-        dp.Scale = new(1.5f);
-        dp.DestoryAt = durationMs;
-        dp.Color = accessory.Data.DefaultDangerColor;
-        accessory.Method.SendDraw(DrawModeEnum.Default, DrawTypeEnum.Displacement, dp);
-
-        // 绿线: 玩家 → 远离Boss (大致的落地方向)
-        dp = accessory.Data.GetDefaultDrawProperties();
-        dp.Owner = accessory.Data.Me;
-        dp.TargetObject = sourceId;
-        dp.Rotation = float.Pi;
-        dp.ScaleMode |= ScaleMode.YByDistance;
-        dp.Scale = new(1.5f, 25);
-        dp.DestoryAt = durationMs;
-        dp.Color = accessory.Data.DefaultSafeColor;
-        accessory.Method.SendDraw(DrawModeEnum.Default, DrawTypeEnum.Displacement, dp);*/
+        if (!TryGetDurationMs(@event, out int durationMs)) return;
 
         if (EnableTextPrompts)
             accessory.Method.TextInfo("击退", durationMs);
     }
 
-    [ScriptMethod(
-        name: "呕吐",
+    [ScriptMethod(name: "呕吐",
         eventType: EventTypeEnum.StartCasting,
         eventCondition: ["ActionId:regex:^(50361)$"])]
     public void 呕吐(Event @event, ScriptAccessory accessory)
     {
-        // 提取 Boss 的 ID (十六进制字符串 → 数字)
-        if (!ParseObjectId(@event["SourceId"], out var sourceId))
-            return;
+        if (!ParseObjectId(@event["SourceId"], out var sourceId)) return;
+        if (!TryGetDurationMs(@event, out int durationMs)) return;
 
-        // 提取读条时间
-        int durationMs;
-        try { durationMs = JsonConvert.DeserializeObject<int>(@event["DurationMilliseconds"]); }
-        catch { return; }
-        
-        // 危险区 — 红色扇形 (Boss 面前 124°)
-        var dp = accessory.Data.GetDefaultDrawProperties();
-        dp.Owner = sourceId;
-        dp.Scale = new(100);
-        dp.Radian = ConvertDegree(124);
-        dp.DestoryAt = durationMs;
-        dp.Color = accessory.Data.DefaultDangerColor;
-        accessory.Method.SendDraw(DrawModeEnum.Default, DrawTypeEnum.Fan, dp);
-
-        // 安全区 — 绿色扇形 (Boss 背后 236°)
-        dp = accessory.Data.GetDefaultDrawProperties();
-        dp.Scale = new(100);
-        dp.Radian = ConvertDegree(236);
-        dp.DestoryAt = durationMs;
-        dp.Color = accessory.Data.DefaultSafeColor;
-        accessory.Method.SendDraw(DrawModeEnum.Default, DrawTypeEnum.Fan, dp);
-
+        DrawDangerFan(accessory, sourceId, 100, 124, durationMs);
+        DrawSafeFan(accessory, sourceId, 100, 124, durationMs);
     }
 
-    [ScriptMethod(
-        name: "肉压杀_塔",
+    [ScriptMethod(name: "肉压杀_塔",
         eventType: EventTypeEnum.StartCasting,
         eventCondition: ["ActionId:regex:^(48882)$"])]
     public void 肉压杀_塔(Event @event, ScriptAccessory accessory)
     {
-        Vector3 towerPos;
-        try { towerPos = JsonConvert.DeserializeObject<Vector3>(@event["EffectPosition"]); }
-        catch { return; }
+        if (!TryGetEffectPosition(@event, out var towerPos)) return;
+        if (!TryGetDurationMs(@event, out int durationMs)) return;
 
-        int durationMs;
-        try { durationMs = JsonConvert.DeserializeObject<int>(@event["DurationMilliseconds"]); }
-        catch { return; }
-
-        // 塔的位置 — 绿色圆圈
-        var dp = accessory.Data.GetDefaultDrawProperties();
-        dp.Position = towerPos;
-        dp.Scale = new(4);                                
-        dp.DestoryAt = durationMs;
-        dp.Color = accessory.Data.DefaultSafeColor;
-        accessory.Method.SendDraw(DrawModeEnum.Default, DrawTypeEnum.Circle, dp);
-
-        /*// 四人指路 — 每人一个箭头指向塔
-        for (int i = 0; i < 4; i++)
-        {
-            dp = accessory.Data.GetDefaultDrawProperties();
-            dp.Owner = accessory.Data.PartyList[i];
-            dp.TargetPosition = towerPos;
-            dp.Scale = new(2);
-            dp.ScaleMode |= ScaleMode.YByDistance;
-            dp.Color = accessory.Data.DefaultSafeColor;
-            dp.DestoryAt = durationMs;
-            accessory.Method.SendDraw(DrawModeEnum.Imgui, DrawTypeEnum.Displacement, dp);
-        }*/
+        DrawCircleAt(accessory, towerPos, 4, durationMs, accessory.Data.DefaultSafeColor);
     }
 
-    // BOSS 3
-    [ScriptMethod(
-        name: "虚无黑暗",
+    // ---- BOSS 3 ----
+
+    [ScriptMethod(name: "虚无黑暗",
         eventType: EventTypeEnum.StartCasting,
         eventCondition: ["ActionId:regex:^(50313)$"])]
     public void 虚无黑暗(Event @event, ScriptAccessory accessory)
     {
-        // 提取 Boss 的 ID (十六进制字符串 → 数字)
-        if (!ParseObjectId(@event["SourceId"], out var sourceId))
-            return;
+        if (!ParseObjectId(@event["SourceId"], out var sourceId)) return;
+        if (!TryGetDurationMs(@event, out int durationMs)) return;
 
-        // 提取读条时间
-        int durationMs;
-        try { durationMs = JsonConvert.DeserializeObject<int>(@event["DurationMilliseconds"]); }
-        catch { return; }
-        
-        float    width = 100;   
-        float    length = 100;  
-        var dp = accessory.Data.GetDefaultDrawProperties();
-        dp.Owner = sourceId;
-        dp.Scale = new(width, length);
-        dp.DestoryAt = durationMs;
-        dp.Color = accessory.Data.DefaultDangerColor;
-        accessory.Method.SendDraw(DrawModeEnum.Default, DrawTypeEnum.Rect, dp);
+        DrawRectOnOwner(accessory, sourceId, 100, 100, durationMs, accessory.Data.DefaultDangerColor);
     }
-    [ScriptMethod(
-        name: "废料光环",
+
+    [ScriptMethod(name: "废料光环",
         eventType: EventTypeEnum.StartCasting,
         eventCondition: ["ActionId:regex:^(48934|48940)$"])]
     public void 废料光环(Event @event, ScriptAccessory accessory)
     {
-        Vector3 towerPos;
-        try { towerPos = JsonConvert.DeserializeObject<Vector3>(@event["EffectPosition"]); }
-        catch { return; }
+        if (!TryGetEffectPosition(@event, out var pos)) return;
+        if (!TryGetDurationMs(@event, out int durationMs)) return;
 
-        int durationMs;
-        try { durationMs = JsonConvert.DeserializeObject<int>(@event["DurationMilliseconds"]); }
-        catch { return; }
-
-        // 危险圈
-        var dp = accessory.Data.GetDefaultDrawProperties();
-        dp.Position = towerPos;
-        dp.Scale = new(7);                                
-        dp.DestoryAt = durationMs;
-        dp.Color = accessory.Data.DefaultDangerColor;
-        accessory.Method.SendDraw(DrawModeEnum.Default, DrawTypeEnum.Circle, dp);
-        
+        DrawCircleAt(accessory, pos, 7, durationMs, accessory.Data.DefaultDangerColor);
     }
-    [ScriptMethod(
-        name: "废料瘴气",
+
+    [ScriptMethod(name: "废料瘴气",
         eventType: EventTypeEnum.StartCasting,
         eventCondition: ["ActionId:regex:^(48937|48943)$"])]
     public void 废料瘴气(Event @event, ScriptAccessory accessory)
     {
-        // 提取 Boss 位置
-        Vector3 bossPos;
-        try { bossPos = JsonConvert.DeserializeObject<Vector3>(@event["SourcePosition"]); }
-        catch { return; }
+        if (!TryGetBossTransform(@event, out var bossPos, out var bossFacing, out int durationMs))
+            return;
 
-        // 提取 Boss 朝向
-        double bossRotation;
-        try { bossRotation = JsonConvert.DeserializeObject<double>(@event["SourceRotation"]); }
-        catch { return; }
-
-        // 提取读条时间
-        int durationMs;
-        try { durationMs = JsonConvert.DeserializeObject<int>(@event["DurationMilliseconds"]); }
-        catch { return; }
-
-        float bossFacing = (float)bossRotation;
-
-        // 危险区 — 红色扇形 (Boss 面前 30°)
-        var dp = accessory.Data.GetDefaultDrawProperties();
-        dp.Position = bossPos;
-        dp.Rotation = bossFacing;
-        dp.Scale = new(100);
-        dp.Radian = ConvertDegree(30);
-        dp.DestoryAt = durationMs;
-        dp.Color = accessory.Data.DefaultDangerColor;
-        accessory.Method.SendDraw(DrawModeEnum.Default, DrawTypeEnum.Fan, dp);
-
-       
+        DrawDangerFan(accessory, bossPos, bossFacing, 30, 100, durationMs);
     }
+
     // ============================================================
-    // 辅助方法
+    // 数据提取辅助方法 (从事件中取数据)
+    // ============================================================
+
+    /// <summary>提取读条时间, 失败返回 false</summary>
+    private static bool TryGetDurationMs(Event @event, out int durationMs)
+    {
+        durationMs = 0;
+        try { durationMs = JsonConvert.DeserializeObject<int>(@event["DurationMilliseconds"]); return true; }
+        catch { return false; }
+    }
+
+    /// <summary>提取 EffectPosition, 失败返回 false</summary>
+    private static bool TryGetEffectPosition(Event @event, out Vector3 pos)
+    {
+        pos = Vector3.Zero;
+        try { pos = JsonConvert.DeserializeObject<Vector3>(@event["EffectPosition"]); return true; }
+        catch { return false; }
+    }
+
+    /// <summary>提取 Boss 位置 + 朝向 + 读条时间, 三项都成功才返回 true</summary>
+    private static bool TryGetBossTransform(Event @event, out Vector3 pos, out float facing, out int durationMs)
+    {
+        pos = Vector3.Zero;
+        facing = 0;
+        durationMs = 0;
+        try { pos = JsonConvert.DeserializeObject<Vector3>(@event["SourcePosition"]); }
+        catch { return false; }
+        try { var r = JsonConvert.DeserializeObject<double>(@event["SourceRotation"]); facing = (float)r; }
+        catch { return false; }
+        try { durationMs = JsonConvert.DeserializeObject<int>(@event["DurationMilliseconds"]); }
+        catch { return false; }
+        return true;
+    }
+
+    // ============================================================
+    // 绘图辅助方法 (封装常见的画图组合)
+    // ============================================================
+
+    /// <summary>画危险扇形 (Boss 面前)</summary>
+    private static void DrawDangerFan(ScriptAccessory a, Vector3 pos, float facing, float angle, float radius, int durationMs)
+    {
+        var dp = a.Data.GetDefaultDrawProperties();
+        dp.Position = pos;
+        dp.Rotation = facing;
+        dp.Scale = new(radius);
+        dp.Radian = ConvertDegree(angle);
+        dp.DestoryAt = durationMs;
+        dp.Color = a.Data.DefaultDangerColor;
+        a.Method.SendDraw(DrawModeEnum.Default, DrawTypeEnum.Fan, dp);
+    }
+
+    /// <summary>画危险扇形 (绑在 Boss 身上, 面向自动对)</summary>
+    private static void DrawDangerFan(ScriptAccessory a, ulong ownerId, float angle, float radius, int durationMs)
+    {
+        var dp = a.Data.GetDefaultDrawProperties();
+        dp.Owner = ownerId;
+        dp.Scale = new(radius);
+        dp.Radian = ConvertDegree(angle);
+        dp.DestoryAt = durationMs;
+        dp.Color = a.Data.DefaultDangerColor;
+        a.Method.SendDraw(DrawModeEnum.Default, DrawTypeEnum.Fan, dp);
+    }
+
+    /// <summary>画安全扇形 (Boss 背后)</summary>
+    private static void DrawSafeFan(ScriptAccessory a, Vector3 pos, float facing, float dangerAngle, float radius, int durationMs)
+    {
+        var dp = a.Data.GetDefaultDrawProperties();
+        dp.Position = pos;
+        dp.Rotation = facing + float.Pi;
+        dp.Scale = new(radius);
+        dp.Radian = ConvertDegree(360 - dangerAngle);
+        dp.DestoryAt = durationMs;
+        dp.Color = a.Data.DefaultSafeColor;
+        a.Method.SendDraw(DrawModeEnum.Default, DrawTypeEnum.Fan, dp);
+    }
+
+    /// <summary>画安全扇形 (绑在 Boss 身上)</summary>
+    private static void DrawSafeFan(ScriptAccessory a, ulong ownerId, float dangerAngle, float radius, int durationMs)
+    {
+        var dp = a.Data.GetDefaultDrawProperties();
+        dp.Owner = ownerId;
+        dp.Rotation = float.Pi;
+        dp.Scale = new(radius);
+        dp.Radian = ConvertDegree(360 - dangerAngle);
+        dp.DestoryAt = durationMs;
+        dp.Color = a.Data.DefaultSafeColor;
+        a.Method.SendDraw(DrawModeEnum.Default, DrawTypeEnum.Fan, dp);
+    }
+
+    /// <summary>画矩形绑在实体身上</summary>
+    private static void DrawRectOnOwner(ScriptAccessory a, ulong ownerId, float width, float length, int durationMs, Vector4 color)
+    {
+        var dp = a.Data.GetDefaultDrawProperties();
+        dp.Owner = ownerId;
+        dp.Scale = new(width, length);
+        dp.DestoryAt = durationMs;
+        dp.Color = color;
+        a.Method.SendDraw(DrawModeEnum.Default, DrawTypeEnum.Rect, dp);
+    }
+
+    /// <summary>画圆绑在目标身上</summary>
+    private static void DrawCircleOnTarget(ScriptAccessory a, ulong targetId, float radius, int durationMs, Vector4 color)
+    {
+        var dp = a.Data.GetDefaultDrawProperties();
+        dp.Owner = targetId;
+        dp.Scale = new(radius);
+        dp.DestoryAt = durationMs;
+        dp.Color = color;
+        a.Method.SendDraw(DrawModeEnum.Default, DrawTypeEnum.Circle, dp);
+    }
+
+    /// <summary>画圆在固定位置</summary>
+    private static void DrawCircleAt(ScriptAccessory a, Vector3 pos, float radius, int durationMs, Vector4 color)
+    {
+        var dp = a.Data.GetDefaultDrawProperties();
+        dp.Position = pos;
+        dp.Scale = new(radius);
+        dp.DestoryAt = durationMs;
+        dp.Color = color;
+        a.Method.SendDraw(DrawModeEnum.Default, DrawTypeEnum.Circle, dp);
+    }
+
+    /// <summary>四人指路箭头, 全部指向同一个目标</summary>
+    private static void GuideAllToTarget(ScriptAccessory a, ulong targetId, int durationMs)
+    {
+        for (int i = 0; i < 4; i++)
+        {
+            var dp = a.Data.GetDefaultDrawProperties();
+            dp.Owner = a.Data.PartyList[i];
+            dp.TargetObject = targetId;
+            dp.Scale = new(2);
+            dp.ScaleMode |= ScaleMode.YByDistance;
+            dp.Color = a.Data.DefaultSafeColor;
+            dp.DestoryAt = durationMs;
+            a.Method.SendDraw(DrawModeEnum.Imgui, DrawTypeEnum.Displacement, dp);
+        }
+    }
+
+    // ============================================================
+    // 基础辅助方法
     // ============================================================
     private static float ConvertDegree(float degree)
         => degree * float.Pi / 180f;
