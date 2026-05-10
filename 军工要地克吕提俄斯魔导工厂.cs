@@ -10,9 +10,10 @@ namespace LRXR.Workspace.MyScripts;
     name: "军工要地克吕提俄斯魔导工厂",
     territorys: [1345],
     guid: "dbf88c7b-f119-423c-954c-26aa86e58704",
-    version: "0.0.0.4",
+    version: "0.0.0.5",
     author: "LRXR",
-    note: "修复部分BUG")]
+    note: "0.0.0.5 \n" +
+          "修复部分BUG")]
 public class 军工要地克吕提俄斯魔导工厂
 {
     // ============================================================
@@ -89,10 +90,10 @@ public class 军工要地克吕提俄斯魔导工厂
 
     // ---- BOSS 2 乔尔特 ----
 
-    [ScriptMethod(name: "肉蛋",
+    [ScriptMethod(name: "肉弹",
         eventType: EventTypeEnum.StartCasting,
         eventCondition: ["ActionId:regex:^(48868|48869|48870|48871|48876|50313)$"])]
-    public void 肉蛋(Event @event, ScriptAccessory accessory)
+    public void 肉弹(Event @event, ScriptAccessory accessory) 
     {
         if (!ParseObjectId(@event["SourceId"], out var sourceId)) return;
         if (!TryGetDurationMs(@event, out int durationMs)) return;
