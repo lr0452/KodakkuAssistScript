@@ -2,11 +2,11 @@
   {
   "Name": "军工要地克吕提俄斯魔导工厂",
   "Guid": "dbf88c7b-f119-423c-954c-26aa86e58704",
-  "Version": "0.0.0.3",
+  "Version": "0.0.0.4",
   "Author": "LRXR",
   "Repo": "",
   "DownloadUrl": "https://raw.githubusercontent.com/lr0452/KodakkuAssistScript/refs/heads/master/%E5%86%9B%E5%B7%A5%E8%A6%81%E5%9C%B0%E5%85%8B%E5%90%95%E6%8F%90%E4%BF%84%E6%96%AF%E9%AD%94%E5%AF%BC%E5%B7%A5%E5%8E%82.cs",
-  "Note": "初版已完成",
+  "Note": "修复部分BUG",
   "UpdateInfo": "",
   "TerritoryIds": [
     1345
