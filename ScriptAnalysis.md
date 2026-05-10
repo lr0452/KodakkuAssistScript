@@ -359,6 +359,37 @@ private static bool ParseObjectId(string? idStr, out ulong id)
 - `ulong.Parse(..., HexNumber)`: 按十六进制解析
 - `out ulong id`: 通过 `out` 返回，`return false` 表示解析失败
 
+**C# `out` 参数 — 和 Java 的关键区别：**
+
+```csharp
+// C#: out 参数可以在"入参"位置写"出参"
+private static bool ParseObjectId(string? idStr, out ulong id)
+{
+    id = 0;                                     // ① 必须先赋值
+    if (string.IsNullOrEmpty(idStr)) return false; // ② return false 时 id=0
+    id = ulong.Parse(...);                       // ③ 成功时 id=解析结果
+    return true;                                 // ④ return true 时 id 有效
+}
+
+// 调用方
+if (!ParseObjectId(@event["SourceId"], out var sourceId))
+    return;  // 解析失败, sourceId 无效, 直接退出
+
+// sourceId 在这里已经可用 ← 值和 bool 同时返回了
+```
+
+| | C# | Java |
+|---|---|---|
+| 返回多个值 | `out` 参数（在参数列表里定义出参） | 只能 return 一个值，或用数组/对象包装 |
+| `out` 关键字 | 有，调用时也必须写 `out` | 没有 |
+| 方法内对 out 参数的约束 | 方法返回前**必须**给 out 参数赋值 | — |
+| 典型用途 | `TryParse("123", out int result)` | `Integer.parseInt("123")` 抛异常 |
+
+**为什么脚本里全都用 `Try*` + `out` 模式：**
+- 游戏事件数据可能缺失（如 Boss 死了没有 DurationMilliseconds）
+- `try-catch` 静默处理 + `out` 参数传递结果 = 不崩溃，不画图，不报错
+- 调用方一行搞定: `if (!TryGetXXX(..., out var x)) return;`
+
 #### DebugLog
 ```csharp
 private void DebugLog(ScriptAccessory a, string msg)

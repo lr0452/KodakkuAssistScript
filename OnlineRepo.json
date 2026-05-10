@@ -2,14 +2,28 @@
   {
   "Name": "军工要地克吕提俄斯魔导工厂",
   "Guid": "dbf88c7b-f119-423c-954c-26aa86e58704",
-  "Version": "0.0.0.5",
+  "Version": "0.0.0.6",
   "Author": "LRXR",
   "Repo": "",
   "DownloadUrl": "https://raw.githubusercontent.com/lr0452/KodakkuAssistScript/refs/heads/master/%E5%86%9B%E5%B7%A5%E8%A6%81%E5%9C%B0%E5%85%8B%E5%90%95%E6%8F%90%E4%BF%84%E6%96%AF%E9%AD%94%E5%AF%BC%E5%B7%A5%E5%8E%82.cs",
-  "Note": "修复部分BUG",
+  "Note": "修复部分BUG \\n 鸣谢 Veever",
   "UpdateInfo": "",
   "TerritoryIds": [
     1345
   ]
-}
+},
+  {
+    "Name": "温达斯_第三巡行",
+    "Guid": "160bfc20-949d-4edb-9eba-39e27f6e7aa0",
+    "Version": "0.0.0.1",
+    "Author": "LRXR",
+    "Repo": "",
+    "DownloadUrl": "https://raw.githubusercontent.com/lr0452/KodakkuAssistScript/refs/heads/master/%E6%B8%A9%E8%BE%BE%E6%96%AF%EF%BC%9A%E7%AC%AC%E4%B8%89%E5%B7%A1%E8%A1%8C.cs",
+    "Note": "初版 \\n 目前仅画了BOSS1、BOSS2 \\n 鸣谢 南雲鉄虎",
+    "UpdateInfo": "",
+    "TerritoryIds": [
+      1368
+    ]
+  }
+  
 ]

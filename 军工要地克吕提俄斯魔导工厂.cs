@@ -10,10 +10,10 @@ namespace LRXR.Workspace.MyScripts;
     name: "军工要地克吕提俄斯魔导工厂",
     territorys: [1345],
     guid: "dbf88c7b-f119-423c-954c-26aa86e58704",
-    version: "0.0.0.5",
+    version: "0.0.0.6",
     author: "LRXR",
-    note: "0.0.0.5 \n" +
-          "修复部分BUG")]
+    note:"修复部分BUG \\n" +
+         " 鸣谢 Veever")]
 public class 军工要地克吕提俄斯魔导工厂
 {
     // ============================================================
@@ -43,7 +43,7 @@ public class 军工要地克吕提俄斯魔导工厂
     // ============================================================
     // 通用技能方法
     // ============================================================
-
+    #region 通用技能方法
     [ScriptMethod(name: "屏幕提示",
         eventType: EventTypeEnum.StartCasting,
         eventCondition: ["ActionId:regex:^(48896|50408|48920|48931)$"])]
@@ -70,12 +70,12 @@ public class 军工要地克吕提俄斯魔导工厂
         if (!TryGetDurationMs(@event, out int durationMs)) return;
 
         DrawCircleOnTarget(accessory, targetId, 6, durationMs, SafeColour.V4);
-        GuideAllToTarget(accessory, targetId, durationMs, SafeColour.V4);
+        GuideSelfToTarget(accessory, targetId, durationMs, SafeColour.V4);
     }
-
+    #endregion
 
     // ---- BOSS 1 装甲之眼 ----
-
+    #region BOSS 1 装甲之眼
     [ScriptMethod(name: "石化光束",
         eventType: EventTypeEnum.StartCasting,
         eventCondition: ["ActionId:regex:^(50177|50178)$"])]
@@ -87,8 +87,10 @@ public class 军工要地克吕提俄斯魔导工厂
         DrawDangerFan(accessory, bossPos, bossFacing, 100, 100, durationMs, DangerColour.V4);
         DrawSafeFan(accessory, bossPos, bossFacing, 100, 100, durationMs, SafeColour.V4);
     }
-
+    #endregion
     // ---- BOSS 2 乔尔特 ----
+
+    #region BOSS 2 乔尔特
 
     [ScriptMethod(name: "肉弹",
         eventType: EventTypeEnum.StartCasting,
@@ -138,11 +140,12 @@ public class 军工要地克吕提俄斯魔导工厂
         if (!TryGetEffectPosition(@event, out var towerPos)) return;
         if (!TryGetDurationMs(@event, out int durationMs)) return;
 
-        DrawCircleAt(accessory, towerPos, 4, durationMs, SafeColour.V4);
+        DrawSteel(accessory, towerPos, 4, durationMs, SafeColour.V4);
     }
-
+    #endregion
     // ---- BOSS 3 玛帕斯 ----
 
+    #region BOSS 3 玛帕斯
     [ScriptMethod(name: "虚无黑暗",
         eventType: EventTypeEnum.StartCasting,
         eventCondition: ["ActionId:regex:^(50313)$"])]
@@ -162,7 +165,7 @@ public class 军工要地克吕提俄斯魔导工厂
         if (!TryGetEffectPosition(@event, out var pos)) return;
         if (!TryGetDurationMs(@event, out int durationMs)) return;
 
-        DrawCircleAt(accessory, pos, 7, durationMs, DangerColour.V4);
+        DrawSteel(accessory, pos, 7, durationMs, DangerColour.V4);
     }
 
     [ScriptMethod(name: "废料瘴气",
@@ -175,6 +178,7 @@ public class 军工要地克吕提俄斯魔导工厂
 
         DrawDangerFan(accessory, bossPos, bossFacing, 30, 100, durationMs, DangerColour.V4);
     }
+    #endregion
 
     // ============================================================
     // 数据提取辅助方法
@@ -289,7 +293,8 @@ public class 军工要地克吕提俄斯魔导工厂
     }
 
     /// <summary>画圆在固定位置</summary>
-    private static void DrawCircleAt(ScriptAccessory a, Vector3 pos, float radius, int durationMs, Vector4 color)
+    /// <summary>画钢铁 (Boss脚下圆形危险区)</summary>
+    private static void DrawSteel(ScriptAccessory a, Vector3 pos, float radius, int durationMs, Vector4 color)
     {
         var dp = a.Data.GetDefaultDrawProperties();
         dp.Position = pos;
@@ -297,6 +302,43 @@ public class 军工要地克吕提俄斯魔导工厂
         dp.DestoryAt = durationMs;
         dp.Color = color;
         a.Method.SendDraw(DrawModeEnum.Default, DrawTypeEnum.Circle, dp);
+    }
+
+    /// <summary>画钢铁 (绑Boss身上, 跟人动)</summary>
+    private static void DrawSteel(ScriptAccessory a, ulong ownerId, float radius, int durationMs, Vector4 color)
+    {
+        var dp = a.Data.GetDefaultDrawProperties();
+        dp.Owner = ownerId;
+        dp.Scale = new(radius);
+        dp.DestoryAt = durationMs;
+        dp.Color = color;
+        a.Method.SendDraw(DrawModeEnum.Default, DrawTypeEnum.Circle, dp);
+    }
+
+    /// <summary>画月环 (Boss脚下, 內圈安全外圈危险)</summary>
+    private static void DrawDonut(ScriptAccessory a, Vector3 pos, float innerRadius, float outerRadius, int durationMs, Vector4 color)
+    {
+        var dp = a.Data.GetDefaultDrawProperties();
+        dp.Position = pos;
+        dp.Scale = new(outerRadius);
+        dp.InnerScale = new(innerRadius);
+        dp.Radian = float.Pi * 2;
+        dp.DestoryAt = durationMs;
+        dp.Color = color;
+        a.Method.SendDraw(DrawModeEnum.Default, DrawTypeEnum.Donut, dp);
+    }
+
+    /// <summary>画月环 (绑Boss身上)</summary>
+    private static void DrawDonut(ScriptAccessory a, ulong ownerId, float innerRadius, float outerRadius, int durationMs, Vector4 color)
+    {
+        var dp = a.Data.GetDefaultDrawProperties();
+        dp.Owner = ownerId;
+        dp.Scale = new(outerRadius);
+        dp.InnerScale = new(innerRadius);
+        dp.Radian = float.Pi * 2;
+        dp.DestoryAt = durationMs;
+        dp.Color = color;
+        a.Method.SendDraw(DrawModeEnum.Default, DrawTypeEnum.Donut, dp);
     }
 
     /// <summary>四人指路箭头全部指向同一个目标</summary>
@@ -313,6 +355,19 @@ public class 军工要地克吕提俄斯魔导工厂
             dp.DestoryAt = durationMs;
             a.Method.SendDraw(DrawModeEnum.Imgui, DrawTypeEnum.Displacement, dp);
         }
+    }
+
+    /// <summary>自己指向目标的指路箭头</summary>
+    private static void GuideSelfToTarget(ScriptAccessory a, ulong targetId, int durationMs, Vector4 color)
+    {
+        var dp = a.Data.GetDefaultDrawProperties();
+        dp.Owner = a.Data.Me;
+        dp.TargetObject = targetId;
+        dp.Scale = new(2);
+        dp.ScaleMode |= ScaleMode.YByDistance;
+        dp.Color = color;
+        dp.DestoryAt = durationMs;
+        a.Method.SendDraw(DrawModeEnum.Imgui, DrawTypeEnum.Displacement, dp);
     }
 
     /// <summary>击退指路: 红线(Boss→玩家) + 绿线(玩家→远离Boss)</summary>
