@@ -13,10 +13,10 @@ namespace LRXR.Workspace.MyScripts;
     name: "温达斯_第三巡行",
     territorys: [1368],
     guid: "160bfc20-949d-4edb-9eba-39e27f6e7aa0",
-    version: "0.0.0.1",
+    version: "0.0.0.2",
     author: "LRXR",
     note: "初版\n" +
-          "目前仅画了BOSS1、BOSS2\n" +
+          "BOSS1、BOSS2画完，小怪还未画\n" +
           "鸣谢 南雲鉄虎")]
 public class 温达斯_第三巡行
 {
@@ -40,6 +40,8 @@ public class 温达斯_第三巡行
     // 类变量
     // ============================================================
     private readonly Queue<ulong> 展开布阵法_钻环跳圈的火炎_队列 = new();
+    private readonly Queue<ulong> 戈耳狄系统_大放电_队列 = new();
+    private int 戈耳狄系统_已清除数;
     private readonly List<(ulong sourceId, int durationMs)> 审理之光_待画 = new();
     // ============================================================
     // 初始化
@@ -48,6 +50,7 @@ public class 温达斯_第三巡行
     {
         accessory.Method.RemoveDraw(".*");
         审理之光_待画.Clear();
+        戈耳狄系统_已清除数 = 0;
         DebugLog(accessory, "脚本已初始化");
     }
     // ============================================================
@@ -56,14 +59,14 @@ public class 温达斯_第三巡行
 
     [ScriptMethod(name: "屏幕提示",
         eventType: EventTypeEnum.StartCasting,
-        eventCondition: ["ActionId:regex:^(50215|50187|50161|50153)$"])]
+        eventCondition: ["ActionId:regex:^(50215|50187|50161|50153|50203)$"])]
     public void 屏幕提示(Event @event, ScriptAccessory accessory)
     {
         if (!TryGetDurationMs(@event, out int durationMs)) return;
 
-        if (@event["ActionId"] == "48931")
-        {
-            if (EnableTextPrompts) accessory.Method.TextInfo("持续移动到这个提示结束！", durationMs);
+        if (@event["ActionId"] == "50203")
+        { 
+            if (EnableTextPrompts) accessory.Method.TextInfo("远离钢铁", durationMs,true);
         }
         else
         {
@@ -79,6 +82,7 @@ public class 温达斯_第三巡行
         if (!ParseObjectId(@event["TargetId"], out var targetId)) return;
         if (!TryGetDurationMs(@event, out int durationMs)) return;
         var color = @event["ActionId"] == "50214" ? DangerColour.V4 : SafeColour.V4;
+        if (@event["ActionId"] == "50158") durationMs += 4000;
         DrawCircleOnTarget(accessory, targetId, 6, durationMs, color);
         if (@event["ActionId"] != "50214")
         {
@@ -121,7 +125,7 @@ public class 温达斯_第三巡行
         if (!ParseObjectId(@event["SourceId"], out var sourceId)) return;
         if (!TryGetDurationMs(@event, out int durationMs)) return;
 
-        DrawSteel(accessory, "钻环跳圈的火炎", sourceId, 6, durationMs, SafeColour.V4);
+        DrawSteel(accessory, "钻环跳圈的火炎", sourceId, 6, durationMs,0, SafeColour.V4);
     }
     
     [ScriptMethod(name: "展开布阵法_钻环跳圈的火炎",
@@ -132,7 +136,7 @@ public class 温达斯_第三巡行
         if (!ParseObjectId(@event["TargetId"], out var TargetId)) return;
         展开布阵法_钻环跳圈的火炎_队列.Enqueue(TargetId);
 
-        DrawSteel(accessory,$"展开布阵法_火炎_{TargetId}", TargetId, 6, 30000, SafeColour.V4);
+        DrawSteel(accessory,$"展开布阵法_火炎_{TargetId}", TargetId, 6, 30000,0, SafeColour.V4);
     }
     [ScriptMethod(name: "展开布阵法_钻环跳圈的火炎_清除",
         eventType: EventTypeEnum.StartCasting,
@@ -157,13 +161,13 @@ public class 温达斯_第三巡行
         if (!ParseObjectId(@event["SourceId"], out var sourceId)) return;
         if (!TryGetDurationMs(@event, out int durationMs)) return;
 
-        DrawSteel(accessory, "靠近乘凉的冰洁", sourceId, 10, durationMs, DangerColour.V4);
+        DrawSteel(accessory, "靠近乘凉的冰洁", sourceId, 10, durationMs,0, DangerColour.V4);
     }
     
     #endregion
     
     // ============================================================
-    // ---- BOSS 1.5 小怪 ----
+    // ---- 1.5 小怪 ----
     // ============================================================
     
     // ============================================================
@@ -171,34 +175,35 @@ public class 温达斯_第三巡行
     // ============================================================
 
     #region 巨神重现 亚历山大
-    [ScriptMethod(name: "圣箭_预警",
-        eventType: EventTypeEnum.StartCasting,
-        eventCondition: ["ActionId:regex:^(50124|50131|50132|50133)$"])]
-    public void 圣箭_预警(Event @event, ScriptAccessory accessory)
+    [ScriptMethod(name: "圣箭",
+        eventType: EventTypeEnum.ActionEffect,
+        eventCondition: ["ActionId:regex:^(50126|50129)$"])]  //50124释放
+    public void 圣箭(Event @event, ScriptAccessory accessory)
     {
-       if(!TryGetBossTransform(@event, out var bossPos, out var bossFacing, out int durationMs))return;
+       if(!TryGetBossTransform(@event, out var bossPos, out var bossFacing))return;
 
-        DrawDangerFan(accessory, bossPos,bossFacing, 100, 100, durationMs, DangerColour.V4.WithW(0.3f)); // 半透明预警
+        DrawDangerFan(accessory, bossPos, bossFacing, 90, 100, 2000, DangerColour.V4);
     }
 
-    [ScriptMethod(name: "圣箭_最终方向",
+    [ScriptMethod(name: "圣箭_持续",
         eventType: EventTypeEnum.ActionEffect,
         eventCondition: ["ActionId:regex:^(50478)$"])]
-    public void 圣箭_最终方向(Event @event, ScriptAccessory accessory)
+    public void 圣箭_持续(Event @event, ScriptAccessory accessory)
     {
         if(!TryGetBossTransform(@event, out var bossPos, out var bossFacing))return;
 
-        DrawDangerFan(accessory, bossPos, bossFacing, 100, 100, 1000, DangerColour.V4);
+        DrawDangerFan(accessory, bossPos, bossFacing, 90, 100, 1000, DangerColour.V4);
     }
     [ScriptMethod(name: "审理之光",
         eventType: EventTypeEnum.StartCasting,
         eventCondition: ["ActionId:regex:^(50146|50147)$"])]
     public void 审理之光(Event @event, ScriptAccessory accessory)
     {
+        // 左右刀同时触发, 收集两个事件的时长再一起画
+        // 注意: 回放录像时可能只触发一个，导致画不出来
         if (!ParseObjectId(@event["SourceId"], out var sourceId)) return;
         if (!TryGetDurationMs(@event, out int durationMs)) return;
 
-        // 左右刀同时触发, 收集两个事件的时长再一起画
         审理之光_待画.Add((sourceId, durationMs));
         if (审理之光_待画.Count < 2) return;
 
@@ -211,8 +216,8 @@ public class 温达斯_第三巡行
 
         审理之光_待画.Clear();
 
-        DrawRectOnOwner(accessory, 短源, 50, 50, 短, 0, DangerColour.V4);         // 先打 → 立刻画
-        DrawRectOnOwner(accessory, 长源, 50, 50, 长 - 短, 短, DangerColour.V4);   // 后打 → 等先打完再画
+        DrawRectOnOwner(accessory, 短源, 50, 50, 短, 0, DangerColour.V4);
+        DrawRectOnOwner(accessory, 长源, 50, 50, 长 - 短, 短, DangerColour.V4);
     }
     [ScriptMethod(name: "圣炎",
         eventType: EventTypeEnum.StartCasting,
@@ -224,8 +229,67 @@ public class 温达斯_第三巡行
         DrawTriangle(accessory, targetId, 90, 25f, durationMs, DangerColour.V4);
     }
     
-    
+    [ScriptMethod(name: "戈耳狄系统_大放电",
+        eventType: EventTypeEnum.Tether,
+        eventCondition: ["Id:regex:^(01AC)$"])]
+    public void 戈耳狄系统_大放电(Event @event, ScriptAccessory accessory)
+    {
+        // N个Tether两两一组: 第一组立刻画, 后续每组等前一组清了再画
+        if (!ParseObjectId(@event["SourceId"], out var sourceId)) return;
+        戈耳狄系统_大放电_队列.Enqueue(sourceId);
+
+        if (戈耳狄系统_大放电_队列.Count <= 2)  // 第一组立刻画
+        {
+            DrawSteel(accessory, $"戈耳狄系统_大放电_{sourceId}", sourceId, 18, 30000,0, DangerColour.V4);
+        }
+    }
+
+    [ScriptMethod(name: "戈耳狄系统_大放电_清除",
+        eventType: EventTypeEnum.StartCasting,
+        eventCondition: ["ActionId:regex:^(50156)$"])]
+    public void 戈耳狄系统_大放电_清除(Event @event, ScriptAccessory accessory)
+    {
+        if (戈耳狄系统_大放电_队列.Count == 0) return;
+        if (!TryGetDurationMs(@event, out int durationMs)) return;
+        var sourceId = 戈耳狄系统_大放电_队列.Dequeue();
+        戈耳狄系统_已清除数++;
+
+        accessory.Method.RemoveDraw($"戈耳狄系统_大放电_{sourceId}");
+
+        // 每清完2个 → 画下一组前2个
+        if (戈耳狄系统_已清除数 % 2 == 0 && 戈耳狄系统_大放电_队列.Count > 0)
+        {
+            int drawn = 0;
+            foreach (var nextSourceId in 戈耳狄系统_大放电_队列)
+            {
+                if (drawn >= 2) break;
+                DrawSteel(accessory, $"戈耳狄系统_大放电_{nextSourceId}", nextSourceId, 18, 30000,durationMs, DangerColour.V4);
+                drawn++;
+            }
+        }
+    }
+
+    [ScriptMethod(name: "圣光枪",
+        eventType: EventTypeEnum.StartCasting,
+        eventCondition: ["ActionId:regex:^(50160)$"])]
+    public void 圣光枪(Event @event, ScriptAccessory accessory)
+    {
+        
+        if (!ParseObjectId(@event["TargetId"], out var targetId)) return;
+        if (!TryGetDurationMs(@event, out int durationMs)) return;
+
+        DrawRectOnOwner(accessory, targetId, 6, 50, durationMs, DangerColour.V4);
+    }
+
     #endregion
+    // ============================================================
+    // ---- 2.5 小怪 ----
+    // ============================================================
+    
+    // ============================================================
+    // ---- BOSS 3  ----
+    // ============================================================
+    
     // ============================================================
     // 数据提取辅助方法
     // ============================================================
@@ -325,7 +389,7 @@ public class 温达斯_第三巡行
         a.Method.SendDraw(DrawModeEnum.Default, DrawTypeEnum.Fan, dp);
     }
 
-    /// <summary>画三角/扇形 (实体面前, 实心填充)</summary>
+    /// <summary>画三角 (实体面前, 角度×半径, 底层Fan实现)</summary>
     private static void DrawTriangle(ScriptAccessory a, ulong ownerId, float angle, float radius, int durationMs, Vector4 color)
     {
         var dp = a.Data.GetDefaultDrawProperties();
@@ -338,7 +402,7 @@ public class 温达斯_第三巡行
         a.Method.SendDraw(DrawModeEnum.Default, DrawTypeEnum.Fan, dp);
     }
 
-    /// <summary>画三角/扇形 (实体指定角度偏移, rotation=弧度)</summary>
+    /// <summary>画三角 (实体指定角度偏移, rotation=弧度)</summary>
     private static void DrawTriangle(ScriptAccessory a, ulong ownerId, float angle, float radius, float rotation, int durationMs, Vector4 color)
     {
         var dp = a.Data.GetDefaultDrawProperties();
@@ -351,7 +415,7 @@ public class 温达斯_第三巡行
         a.Method.SendDraw(DrawModeEnum.Default, DrawTypeEnum.Fan, dp);
     }
 
-    /// <summary>画三角/扇形 (实体背后)</summary>
+    /// <summary>画三角 (实体背后)</summary>
     private static void DrawTriangleBehind(ScriptAccessory a, ulong ownerId, float angle, float radius, int durationMs, Vector4 color)
     {
         var dp = a.Data.GetDefaultDrawProperties();
@@ -410,24 +474,26 @@ public class 温达斯_第三巡行
     }
     /// <summary>画圆在固定位置</summary>
     /// <summary>画钢铁 (Boss脚下圆形危险区)</summary>
-    private static void DrawSteel(ScriptAccessory a, Vector3 pos, float radius, int durationMs, Vector4 color)
+    private static void DrawSteel(ScriptAccessory a, Vector3 pos, float radius, int durationMs, int delay, Vector4 color)
     {
         var dp = a.Data.GetDefaultDrawProperties();
         dp.Position = pos;
         dp.Scale = new(radius);
         dp.DestoryAt = durationMs;
+        dp.Delay = delay;
         dp.Color = color;
         a.Method.SendDraw(DrawModeEnum.Default, DrawTypeEnum.Circle, dp);
     }
 
     /// <summary>画钢铁 (绑Boss身上, 跟人动)</summary>
-    private static void DrawSteel(ScriptAccessory a,String name, ulong ownerId, float radius, int durationMs, Vector4 color)
+    private static void DrawSteel(ScriptAccessory a,String name, ulong ownerId, float radius, int durationMs, int delay, Vector4 color)
     {
         var dp = a.Data.GetDefaultDrawProperties();
         dp.Name = name;
         dp.Owner = ownerId;
         dp.Scale = new(radius);
         dp.DestoryAt = durationMs;
+        dp.Delay = delay;
         dp.Color = color;
         a.Method.SendDraw(DrawModeEnum.Default, DrawTypeEnum.Circle, dp);
     }
