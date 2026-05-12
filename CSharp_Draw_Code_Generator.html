@@ -1,0 +1,1556 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KodakkuAssist C# 画图/指路代码生成器</title>
+<style>
+  :root {
+    --bg: #1e1e2e;
+    --surface: #282840;
+    --surface2: #303050;
+    --border: #3a3a5c;
+    --text: #cdd6f4;
+    --text2: #a6adc8;
+    --accent: #89b4fa;
+    --accent2: #cba6f7;
+    --green: #a6e3a1;
+    --yellow: #f9e2af;
+    --red: #f38ba8;
+    --cyan: #94e2d5;
+    --orange: #fab387;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    padding: 20px;
+  }
+  .container { max-width: 1400px; margin: 0 auto; }
+  h1 {
+    text-align: center;
+    font-size: 1.8em;
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .subtitle { text-align: center; color: var(--text2); margin-bottom: 24px; font-size: 0.9em; }
+
+  /* Tab 导航 */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 20px;
+    background: var(--surface);
+    border-radius: 10px;
+    padding: 4px;
+  }
+  .tab-btn {
+    flex: 1;
+    padding: 10px 16px;
+    border: none;
+    background: transparent;
+    color: var(--text2);
+    cursor: pointer;
+    border-radius: 8px;
+    font-size: 0.95em;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+  .tab-btn.active { background: var(--surface2); color: var(--accent); }
+  .tab-btn:hover:not(.active) { color: var(--text); }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* 面板布局 */
+  .panels { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .panel {
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid var(--border);
+  }
+  .panel.full { grid-column: 1 / -1; }
+  .panel h2 {
+    font-size: 1.15em;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .panel h2 .icon { font-size: 1.3em; }
+
+  /* 表单 */
+  .form-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    gap: 10px;
+  }
+  .form-row label {
+    width: 130px;
+    flex-shrink: 0;
+    color: var(--text2);
+    font-size: 0.9em;
+    text-align: right;
+  }
+  .form-row input, .form-row select {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 0.9em;
+    outline: none;
+    transition: border 0.2s;
+  }
+  .form-row input:focus, .form-row select:focus { border-color: var(--accent); }
+  .form-row input[type="color"] {
+    height: 36px;
+    padding: 2px 6px;
+    cursor: pointer;
+  }
+  .form-row input[type="checkbox"] {
+    width: 18px; height: 18px;
+    cursor: pointer;
+    accent-color: var(--accent);
+  }
+  .form-row .inline-label {
+    flex: unset;
+    width: auto;
+    color: var(--text);
+  }
+  .form-row .unit {
+    width: 60px;
+    flex-shrink: 0;
+    color: var(--text2);
+    font-size: 0.85em;
+  }
+  .form-row .half { flex: 0.5; }
+
+  /* 按钮 */
+  .btn-row { display: flex; gap: 10px; margin-top: 16px; }
+  .btn {
+    padding: 10px 24px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.95em;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+  .btn-primary { background: var(--accent); color: #1e1e2e; flex: 1; }
+  .btn-primary:hover { opacity: 0.9; }
+  .btn-secondary { background: var(--surface2); color: var(--text); }
+  .btn-secondary:hover { background: var(--border); }
+  .btn-copy { background: var(--green); color: #1e1e2e; }
+  .btn-copy:hover { opacity: 0.9; }
+
+  /* 代码输出 */
+  .code-output {
+    background: #181825;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    padding: 16px;
+    font-family: 'Cascadia Code', 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 0.88em;
+    white-space: pre-wrap;
+    overflow-x: auto;
+    min-height: 120px;
+    max-height: 600px;
+    overflow-y: auto;
+    color: var(--text);
+    position: relative;
+  }
+  .code-output .code-header {
+    position: sticky;
+    top: 0;
+    background: #181825;
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .code-output .code-lang { color: var(--accent2); font-weight: 600; font-size: 0.85em; }
+  .toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--green);
+    color: #1e1e2e;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    z-index: 999;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+
+  /* 预置颜色 */
+  .color-presets {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+  .color-dot {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.15s;
+  }
+  .color-dot:hover { border-color: var(--text); transform: scale(1.15); }
+
+  /* 字段组 */
+  .field-group {
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 12px;
+  }
+  .field-group-title {
+    font-size: 0.85em;
+    color: var(--accent2);
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+  .help-text {
+    font-size: 0.78em;
+    color: var(--text2);
+    margin-top: 2px;
+    margin-left: 140px;
+  }
+
+  /* 复选框行 */
+  .check-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .check-row label {
+    color: var(--text);
+    cursor: pointer;
+    font-size: 0.9em;
+  }
+
+  /* 响应式 */
+  @media (max-width: 900px) {
+    .panels { grid-template-columns: 1fr; }
+    .form-row { flex-wrap: wrap; }
+    .form-row label { width: 100%; text-align: left; }
+    .help-text { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>KodakkuAssist C# 画图 & 指路 代码生成器</h1>
+  <p class="subtitle">选择类型 → 填参数 → 点击生成 → 复制到你的脚本中</p>
+
+  <!-- Tab导航 -->
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="draw">🎨 画图</button>
+    <button class="tab-btn" data-tab="guide">🧭 指路</button>
+    <button class="tab-btn" data-tab="mark">🏷️ 标记</button>
+    <button class="tab-btn" data-tab="event">⚡ 事件方法</button>
+    <button class="tab-btn" data-tab="combo">📦 组合模板</button>
+  </div>
+
+  <!-- ==================== 画图 Tab ==================== -->
+  <div class="tab-content active" id="tab-draw">
+    <div class="panels">
+      <!-- 左侧：表单 -->
+      <div class="panel">
+        <h2><span class="icon">🎨</span> 画图参数设置</h2>
+
+        <div class="form-row">
+          <label>绘制类型</label>
+          <select id="draw-type">
+            <option value="Circle">Circle — 圆形（AOE范围/分散圈/分摊圈）</option>
+            <option value="Fan">Fan — 扇形（扇形AOE/引导方向）</option>
+            <option value="Rect">Rect — 矩形（直线范围/燃烧击）</option>
+            <option value="Donut">Donut — 环形（月环等）</option>
+            <option value="Straight">Straight — 直线（两点连线）</option>
+            <option value="SightAvoid">SightAvoid — 视线回避提示</option>
+            <option value="Displacement">Displacement — 位移指示（画图模式）</option>
+            <option value="Arrow">Arrow — 方向箭头</option>
+          </select>
+        </div>
+        <div class="help-text">选择你要画的图形类型，下方灰色区域会自动显示对应参数。</div>
+
+        <div class="field-group" id="draw-basic-fields">
+          <div class="field-group-title">🔧 基本参数</div>
+          <div class="form-row">
+            <label>绘制名称 Name</label>
+            <input type="text" id="draw-name" value="我的绘图_唯一名称" placeholder="用于RemoveDraw删除">
+          </div>
+          <div class="form-row">
+            <label>DrawMode</label>
+            <select id="draw-mode">
+              <option value="Default">Default — 默认模式（形状类）</option>
+              <option value="Imgui">Imgui — Imgui模式（位移/箭头类）</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Scale / Radian -->
+        <div class="field-group" id="draw-shape-fields">
+          <div class="field-group-title">📐 形状参数</div>
+          <div class="form-row" id="row-scale-x">
+            <label>Scale.X（半径/长度）</label>
+            <input type="number" id="draw-scale-x" value="10" step="0.1">
+            <span class="unit">米</span>
+          </div>
+          <div class="form-row" id="row-scale-y" style="display:none;">
+            <label>Scale.Y（宽度）</label>
+            <input type="number" id="draw-scale-y" value="8" step="0.1">
+            <span class="unit">米</span>
+          </div>
+          <div class="form-row" id="row-radian" style="display:none;">
+            <label>Radian 弧度</label>
+            <select id="draw-radian">
+              <option value="PI/8">π/8 (22.5° — 八方扇形)</option>
+              <option value="PI/6">π/6 (30°)</option>
+              <option value="PI/4" selected>π/4 (45°)</option>
+              <option value="PI/3">π/3 (60°)</option>
+              <option value="PI/2">π/2 (90°)</option>
+              <option value="PI">π (180°)</option>
+              <option value="0">自定义 →</option>
+            </select>
+            <input type="number" id="draw-radian-custom" value="0.785" step="0.001" style="display:none; width:80px;" placeholder="自定义弧度">
+            <span class="unit">弧度</span>
+          </div>
+        </div>
+
+        <!-- 位置绑定 -->
+        <div class="field-group">
+          <div class="field-group-title">📍 位置绑定（三选一或组合）</div>
+          <div class="check-row">
+            <input type="checkbox" id="draw-use-owner" checked onchange="updateDrawOwnerMode()">
+            <label>Owner — 绑定到对象（图形中心跟随该对象）</label>
+          </div>
+          <div class="form-row" id="row-owner">
+            <label>Owner 对象</label>
+            <select id="draw-owner">
+              <option value="bossId">bossId — Boss的ID</option>
+              <option value="sid">sid — SourceId（施法者）</option>
+              <option value="accessory.Data.Me">accessory.Data.Me — 我自己</option>
+              <option value="playerId">playerId — 指定玩家</option>
+              <option value="accessory.Data.PartyList[i]">accessory.Data.PartyList[i] — 第i个队员</option>
+            </select>
+          </div>
+
+          <div class="check-row">
+            <input type="checkbox" id="draw-use-target" onchange="updateDrawTargetMode()">
+            <label>TargetObject — 指向某个对象（扇形朝向他/矩形指向他）</label>
+          </div>
+          <div class="form-row" id="row-target-object" style="display:none;">
+            <label>TargetObject</label>
+            <select id="draw-target-object">
+              <option value="accessory.Data.Me">accessory.Data.Me — 我自己</option>
+              <option value="playerId">playerId — 指定玩家</option>
+              <option value="accessory.Data.PartyList[i]">accessory.Data.PartyList[i] — 第i个队员</option>
+              <option value="accessory.Data.PartyList[pm]">pm — 循环变量中的队员</option>
+            </select>
+          </div>
+
+          <div class="check-row">
+            <input type="checkbox" id="draw-use-target-pos" onchange="updateDrawTargetMode()">
+            <label>TargetPosition — 指向固定坐标</label>
+          </div>
+          <div class="form-row" id="row-target-pos" style="display:none;">
+            <label>坐标 X / Z</label>
+            <input type="number" id="draw-pos-x" value="100" step="0.01" class="half" placeholder="X">
+            <input type="number" id="draw-pos-z" value="100" step="0.01" class="half" placeholder="Z">
+            <span class="unit">(Y=0)</span>
+          </div>
+
+          <div class="check-row">
+            <input type="checkbox" id="draw-use-fix-rotation" onchange="updateDrawFixRotation()">
+            <label>FixRotation + Rotation — 固定旋转角度</label>
+          </div>
+          <div class="form-row" id="row-fix-rotation" style="display:none;">
+            <label>Rotation 角度</label>
+            <select id="draw-rotation">
+              <option value="0">0° (正北)</option>
+              <option value="PI/2">π/2 = 90° (正东)</option>
+              <option value="PI">π = 180° (正南)</option>
+              <option value="3*PI/2">3π/2 = 270° (正西)</option>
+              <option value="0">自定义 →</option>
+            </select>
+            <input type="number" id="draw-rotation-custom" value="0" step="0.01" style="display:none; width:100px;" placeholder="弧度值">
+          </div>
+        </div>
+
+        <!-- 颜色 & 时间 -->
+        <div class="field-group">
+          <div class="field-group-title">🎨 颜色 & ⏱️ 时间</div>
+          <div class="color-presets">
+            <span style="color:var(--text2);font-size:0.85em;line-height:28px;margin-right:6px;">预置色:</span>
+            <span class="color-dot" style="background:#f38ba8" title="红色 危险" onclick="setDrawColor('#f38ba8')"></span>
+            <span class="color-dot" style="background:#a6e3a1" title="绿色 安全" onclick="setDrawColor('#a6e3a1')"></span>
+            <span class="color-dot" style="background:#f9e2af" title="黄色 警告" onclick="setDrawColor('#f9e2af')"></span>
+            <span class="color-dot" style="background:#89b4fa" title="蓝色" onclick="setDrawColor('#89b4fa')"></span>
+            <span class="color-dot" style="background:#94e2d5" title="青色" onclick="setDrawColor('#94e2d5')"></span>
+            <span class="color-dot" style="background:#cba6f7" title="紫色" onclick="setDrawColor('#cba6f7')"></span>
+            <span class="color-dot" style="background:#ffffff" title="白色" onclick="setDrawColor('#ffffff')"></span>
+            <span style="color:var(--text2);font-size:0.85em;line-height:28px;margin:0 4px;">或</span>
+          </div>
+          <div class="form-row">
+            <label>颜色</label>
+            <input type="color" id="draw-color" value="#f38ba8">
+            <select id="draw-color-preset" onchange="applyDrawColorPreset()" style="flex:1;">
+              <option value="custom">自定义颜色</option>
+              <option value="danger">accessory.Data.DefaultDangerColor（预置危险色）</option>
+              <option value="safe">accessory.Data.DefaultSafeColor（预置安全色）</option>
+              <option value="myColor">myColor — 用户设置的颜色变量</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>Delay 延迟显示</label>
+            <input type="number" id="draw-delay" value="0" step="100" min="0">
+            <span class="unit">毫秒</span>
+          </div>
+          <div class="form-row">
+            <label>DestoryAt 显示时长</label>
+            <input type="number" id="draw-destroy" value="7000" step="100" min="0">
+            <span class="unit">毫秒</span>
+          </div>
+        </div>
+
+        <!-- 高级选项 -->
+        <div class="field-group">
+          <div class="field-group-title">🔬 高级选项</div>
+          <div class="check-row">
+            <input type="checkbox" id="draw-use-centre-resolve">
+            <label>CentreResolvePattern + CentreOrderIndex（多目标排序定位）</label>
+          </div>
+          <div class="form-row" id="row-centre-resolve" style="display:none;">
+            <label>CentreResolvePattern</label>
+            <select id="draw-centre-resolve">
+              <option value="PlayerNearestOrder">PlayerNearestOrder — 按玩家最近排序</option>
+            </select>
+          </div>
+          <div class="form-row" id="row-centre-index" style="display:none;">
+            <label>CentreOrderIndex</label>
+            <input type="number" id="draw-centre-index" value="1" step="1" min="0">
+            <span class="unit">(0-based)</span>
+          </div>
+          <div class="check-row">
+            <input type="checkbox" id="draw-use-foreach">
+            <label>在 foreach 循环中（遍历 PartyList 给每人画）</label>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="generateDrawCode()">🔧 生成画图代码</button>
+          <button class="btn btn-secondary" onclick="resetDrawForm()">🔄 重置</button>
+        </div>
+      </div>
+
+      <!-- 右侧：代码预览 -->
+      <div class="panel">
+        <h2><span class="icon">📝</span> 生成的代码</h2>
+        <div class="code-output" id="draw-code-output">
+          <div class="code-header"><span class="code-lang">C# 画图代码</span></div>
+          <span style="color:var(--text2);">请在左侧设置参数并点击"生成画图代码"...</span>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-copy" onclick="copyCode('draw-code-output')">📋 复制代码</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 指路 Tab ==================== -->
+  <div class="tab-content" id="tab-guide">
+    <div class="panels">
+      <div class="panel">
+        <h2><span class="icon">🧭</span> 指路参数设置</h2>
+
+        <div class="form-row">
+          <label>指路类型</label>
+          <select id="guide-type" onchange="updateGuideType()">
+            <option value="displacement">Displacement — 位移指示（推荐，显示从你到目标位置的指引）</option>
+            <option value="arrow">Arrow — 方向箭头（仅指示方向）</option>
+            <option value="straight">Straight — 连接线（两点间画线）</option>
+          </select>
+        </div>
+
+        <div class="field-group">
+          <div class="field-group-title">📍 位置设置</div>
+          <div class="form-row">
+            <label>指路名称 Name</label>
+            <input type="text" id="guide-name" value="指路_去安全位置">
+          </div>
+          <div class="form-row">
+            <label>起点 Owner</label>
+            <select id="guide-owner">
+              <option value="accessory.Data.Me" selected>accessory.Data.Me — 我自己</option>
+              <option value="bossId">bossId — Boss</option>
+              <option value="sid">sid — SourceId</option>
+              <option value="playerId">playerId — 指定玩家</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <label>目标类型</label>
+            <select id="guide-target-type" onchange="updateGuideTargetType()">
+              <option value="pos">TargetPosition — 固定世界坐标</option>
+              <option value="obj">TargetObject — 指向某个对象</option>
+            </select>
+          </div>
+          <div id="guide-target-pos-fields">
+            <div class="form-row">
+              <label>目标坐标 X</label>
+              <input type="number" id="guide-pos-x" value="100" step="0.01">
+            </div>
+            <div class="form-row">
+              <label>目标坐标 Z</label>
+              <input type="number" id="guide-pos-z" value="90" step="0.01">
+              <span class="unit">(Y=0, Z小=北)</span>
+            </div>
+          </div>
+          <div id="guide-target-obj-fields" style="display:none;">
+            <div class="form-row">
+              <label>TargetObject</label>
+              <select id="guide-target-obj">
+                <option value="bossId">bossId — Boss</option>
+                <option value="accessory.Data.Me">accessory.Data.Me — 我自己</option>
+                <option value="playerId">playerId — 指定玩家</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- 坐标系参考 -->
+          <div style="margin-top:8px; padding:8px; background:var(--bg); border-radius:6px; font-size:0.8em; color:var(--text2);">
+            <strong>💡 场地坐标系参考（中心=100,0,100）：</strong><br>
+            正北 Z↓ (Z=87~93) ｜ 正南 Z↑ (Z=107~113)<br>
+            正东 X↑ (X=107~113) ｜ 正西 X↓ (X=87~93)<br>
+            常用的方位预设：
+            <span style="color:var(--accent);cursor:pointer" onclick="setGuidePos(100,87,'正北')">正北</span> ·
+            <span style="color:var(--accent);cursor:pointer" onclick="setGuidePos(107,100,'正东')">正东</span> ·
+            <span style="color:var(--accent);cursor:pointer" onclick="setGuidePos(100,113,'正南')">正南</span> ·
+            <span style="color:var(--accent);cursor:pointer" onclick="setGuidePos(93,100,'正西')">正西</span> ·
+            <span style="color:var(--accent);cursor:pointer" onclick="setGuidePos(100,100,'中心')">中心</span>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <div class="field-group-title">🎨 外观</div>
+          <div class="form-row">
+            <label>Scale 大小</label>
+            <input type="number" id="guide-scale" value="2" step="0.1">
+          </div>
+          <div class="form-row">
+            <label>颜色</label>
+            <select id="guide-color-preset">
+              <option value="safe">accessory.Data.DefaultSafeColor（绿色安全色）</option>
+              <option value="danger">accessory.Data.DefaultDangerColor（红色危险色）</option>
+              <option value="myColor">myColor — 用户设置的颜色变量</option>
+              <option value="custom">自定义颜色 →</option>
+            </select>
+            <input type="color" id="guide-color" value="#a6e3a1" style="display:none;">
+          </div>
+          <div class="form-row">
+            <label>DestoryAt 显示时长</label>
+            <input type="number" id="guide-destroy" value="7000" step="100" min="0">
+            <span class="unit">毫秒</span>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="generateGuideCode()">🔧 生成指路代码</button>
+          <button class="btn btn-secondary" onclick="resetGuideForm()">🔄 重置</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2><span class="icon">📝</span> 生成的代码</h2>
+        <div class="code-output" id="guide-code-output">
+          <div class="code-header"><span class="code-lang">C# 指路代码</span></div>
+          <span style="color:var(--text2);">请在左侧设置参数并点击"生成指路代码"...</span>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-copy" onclick="copyCode('guide-code-output')">📋 复制代码</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 标记 Tab ==================== -->
+  <div class="tab-content" id="tab-mark">
+    <div class="panels">
+      <div class="panel">
+        <h2><span class="icon">🏷️</span> 标记参数设置</h2>
+
+        <div class="form-row">
+          <label>标记名称 Name</label>
+          <input type="text" id="mark-name" value="标记_玩家标记">
+        </div>
+        <div class="form-row">
+          <label>标记对象</label>
+          <select id="mark-target">
+            <option value="accessory.Data.PartyList[i]">accessory.Data.PartyList[i] — 第i个队员</option>
+            <option value="accessory.Data.PartyList[0]">accessory.Data.PartyList[0] — MT</option>
+            <option value="accessory.Data.PartyList[1]">accessory.Data.PartyList[1] — ST</option>
+            <option value="accessory.Data.PartyList[2]">accessory.Data.PartyList[2] — H1</option>
+            <option value="accessory.Data.PartyList[3]">accessory.Data.PartyList[3] — H2</option>
+            <option value="accessory.Data.PartyList[4]">accessory.Data.PartyList[4] — D1</option>
+            <option value="accessory.Data.PartyList[5]">accessory.Data.PartyList[5] — D2</option>
+            <option value="accessory.Data.PartyList[6]">accessory.Data.PartyList[6] — D3</option>
+            <option value="accessory.Data.PartyList[7]">accessory.Data.PartyList[7] — D4</option>
+            <option value="playerId">playerId — 变量</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>标记类型</label>
+          <select id="mark-type">
+            <optgroup label="攻击标记">
+              <option value="MarkType.Attack1">MarkType.Attack1</option>
+              <option value="MarkType.Attack2">MarkType.Attack2</option>
+              <option value="MarkType.Attack3">MarkType.Attack3</option>
+              <option value="MarkType.Attack4">MarkType.Attack4</option>
+              <option value="MarkType.Attack5">MarkType.Attack5</option>
+              <option value="MarkType.Attack6">MarkType.Attack6</option>
+              <option value="MarkType.Attack7">MarkType.Attack7</option>
+              <option value="MarkType.Attack8">MarkType.Attack8</option>
+            </optgroup>
+            <optgroup label="锁链标记">
+              <option value="MarkType.Bind1">MarkType.Bind1</option>
+              <option value="MarkType.Bind2">MarkType.Bind2</option>
+              <option value="MarkType.Bind3">MarkType.Bind3</option>
+            </optgroup>
+            <optgroup label="禁止标记">
+              <option value="MarkType.Stop1">MarkType.Stop1</option>
+              <option value="MarkType.Stop2">MarkType.Stop2</option>
+            </optgroup>
+            <optgroup label="其他标记">
+              <option value="MarkType.Square">MarkType.Square（方块）</option>
+              <option value="MarkType.Cross">MarkType.Cross（叉号）</option>
+            </optgroup>
+          </select>
+        </div>
+
+        <div class="field-group">
+          <div class="field-group-title">📋 批量标记模式</div>
+          <div class="check-row">
+            <input type="checkbox" checked id="mark-use-foreach">
+            <label>foreach 循环 — 遍历玩家列表批量标记</label>
+          </div>
+          <div class="form-row" id="row-mark-count" style="display:block;">
+            <label>标记数量</label>
+            <select id="mark-count">
+              <option value="4">4个</option>
+              <option value="2">2个</option>
+              <option value="8">8个（全体）</option>
+            </select>
+          </div>
+          <div class="form-row" id="row-mark-list" style="display:block;">
+            <label>标记列表</label>
+            <select id="mark-list">
+              <option value="attack">攻击标记：Attack1, Attack2, Attack3, Attack4</option>
+              <option value="stop">止步标记：Stop1, Stop2</option>
+              <option value="bind">锁链标记：Bind1, Bind2</option>
+              <option value="mix_tether">连线标记：Stop1, Bind1, Stop2, Bind2</option>
+              <option value="mix_untether">闲人标记：Attack1, Attack2, Attack3, Attack4</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>标记前清除旧标记</label>
+            <select id="mark-clear">
+              <option value="yes">是 — 先 MarkClear()（推荐）</option>
+              <option value="no">否 — 直接叠加</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="generateMarkCode()">🔧 生成标记代码</button>
+          <button class="btn btn-secondary" onclick="resetMarkForm()">🔄 重置</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2><span class="icon">📝</span> 生成的代码</h2>
+        <div class="code-output" id="mark-code-output">
+          <div class="code-header"><span class="code-lang">C# 标记代码</span></div>
+          <span style="color:var(--text2);">请在左侧设置参数并点击"生成标记代码"...</span>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-copy" onclick="copyCode('mark-code-output')">📋 复制代码</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 事件方法 Tab ==================== -->
+  <div class="tab-content" id="tab-event">
+    <div class="panels">
+      <div class="panel">
+        <h2><span class="icon">⚡</span> ScriptMethod 事件参数</h2>
+
+        <div class="form-row">
+          <label>方法名（中文）</label>
+          <input type="text" id="event-name-zh" value="画图_示例功能">
+        </div>
+        <div class="form-row">
+          <label>方法名（C#）</label>
+          <input type="text" id="event-name-cs" value="Draw_ExampleFeature">
+        </div>
+        <div class="form-row">
+          <label>事件类型</label>
+          <select id="event-type" onchange="updateEventType()">
+            <option value="StartCasting">StartCasting — 开始读条</option>
+            <option value="ActionEffect">ActionEffect — 技能效果生效</option>
+            <option value="StatusAdd">StatusAdd — 获得Buff/Debuff</option>
+            <option value="StatusRemove">StatusRemove — 移除Buff/Debuff</option>
+            <option value="NpcYell">NpcYell — NPC喊话</option>
+            <option value="ObjectEffect">ObjectEffect — 对象特效</option>
+            <option value="AddCombatant">AddCombatant — 战斗单位出现</option>
+            <option value="RemoveCombatant">RemoveCombatant — 战斗单位消失</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <label>条件1</label>
+          <input type="text" id="event-cond1" value="ActionId:regex:^(40145)$" placeholder="如 ActionId:12345">
+        </div>
+        <div class="help-text">格式：<code>字段名:值</code> 或 <code>字段名:regex:正则</code></div>
+        <div class="form-row">
+          <label>条件2（可选）</label>
+          <input type="text" id="event-cond2" value="" placeholder="如 TargetIndex:1">
+        </div>
+        <div class="form-row">
+          <label>防抖 suppress</label>
+          <input type="number" id="event-suppress" value="0" min="0" step="100">
+          <span class="unit">毫秒（0=不防抖）</span>
+        </div>
+        <div class="form-row">
+          <label>用户可见</label>
+          <select id="event-user-control">
+            <option value="true">true — UI中显示开关</option>
+            <option value="false">false — 隐藏（用于内部数据记录）</option>
+          </select>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="generateEventCode()">🔧 生成事件方法模板</button>
+          <button class="btn btn-secondary" onclick="resetEventForm()">🔄 重置</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2><span class="icon">📝</span> 生成的代码</h2>
+        <div class="code-output" id="event-code-output">
+          <div class="code-header"><span class="code-lang">C# 事件方法模板</span></div>
+          <span style="color:var(--text2);">请在左侧设置参数并点击"生成事件方法模板"...</span>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-copy" onclick="copyCode('event-code-output')">📋 复制代码</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 组合模板 Tab ==================== -->
+  <div class="tab-content" id="tab-combo">
+    <div class="panels">
+      <div class="panel full">
+        <h2><span class="icon">📦</span> 常用组合模板</h2>
+        <p style="color:var(--text2);margin-bottom:16px;">选择一个场景模板，自动生成包含画图+指路+标记+事件方法的完整代码。</p>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <!-- 模板卡片 -->
+          <div class="template-card" style="background:var(--surface2);border-radius:10px;padding:16px;border:1px solid var(--border);cursor:pointer;" onclick="loadTemplate('boss-fan')">
+            <strong style="color:var(--accent);">🔶 Boss 扇形AOE + 分散提示</strong>
+            <p style="color:var(--text2);font-size:0.85em;margin-top:4px;">读条时画扇形，延时后画分散圈，带文字提示</p>
+          </div>
+          <div class="template-card" style="background:var(--surface2);border-radius:10px;padding:16px;border:1px solid var(--border);cursor:pointer;" onclick="loadTemplate('boss-circle-stack')">
+            <strong style="color:var(--accent);">⭕ Boss 圆形AOE + 分摊/分散提示</strong>
+            <p style="color:var(--text2);font-size:0.85em;margin-top:4px;">画圆形AOE，按分组画不同颜色的分摊/分散圈</p>
+          </div>
+          <div class="template-card" style="background:var(--surface2);border-radius:10px;padding:16px;border:1px solid var(--border);cursor:pointer;" onclick="loadTemplate('boss-donut')">
+            <strong style="color:var(--accent);">🍩 Boss 月环（Donut）</strong>
+            <p style="color:var(--text2);font-size:0.85em;margin-top:4px;">环形AOE绘制，内侧安全外侧危险</p>
+          </div>
+          <div class="template-card" style="background:var(--surface2);border-radius:10px;padding:16px;border:1px solid var(--border);cursor:pointer;" onclick="loadTemplate('guide-position')">
+            <strong style="color:var(--accent2);">🧭 指路 — 引导去安全位置</strong>
+            <p style="color:var(--text2);font-size:0.85em;margin-top:4px;">基于事件触发，Displacement指引玩家去安全坐标</p>
+          </div>
+          <div class="template-card" style="background:var(--surface2);border-radius:10px;padding:16px;border:1px solid var(--border);cursor:pointer;" onclick="loadTemplate('mark-players')">
+            <strong style="color:var(--accent2);">🏷️ 标记 — 批量标记队员</strong>
+            <p style="color:var(--text2);font-size:0.85em;margin-top:4px;">按优先级排序后给队员打攻击/止步/锁链标记</p>
+          </div>
+          <div class="template-card" style="background:var(--surface2);border-radius:10px;padding:16px;border:1px solid var(--border);cursor:pointer;" onclick="loadTemplate('full-phase')">
+            <strong style="color:var(--green);">✅ 完整阶段 — 画图+指路+标记+双语提示</strong>
+            <p style="color:var(--text2);font-size:0.85em;margin-top:4px;">一个完整ScriptMethod方法，包含所有元素</p>
+          </div>
+        </div>
+
+        <h3 style="margin-top:20px;margin-bottom:10px;">📝 生成的代码</h3>
+        <div class="code-output" id="combo-code-output" style="min-height:200px;">
+          <div class="code-header"><span class="code-lang">C# — 选择模板后自动生成</span></div>
+          <span style="color:var(--text2);">请点击上方模板卡片...</span>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-copy" onclick="copyCode('combo-code-output')">📋 复制代码</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast 提示 -->
+<div class="toast" id="toast">已复制到剪贴板!</div>
+
+<script>
+// =========================== 通用工具 ============================
+function $(id) { return document.getElementById(id); }
+
+function showToast(msg) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+function copyCode(outputId) {
+  const el = $(outputId);
+  const text = el.textContent || el.innerText;
+  navigator.clipboard.writeText(text).then(() => showToast('✅ 已复制到剪贴板!'));
+}
+
+function indent(code, level = 12) {
+  const spaces = ' '.repeat(level);
+  return code.split('\n').map(l => l ? spaces + l : l).join('\n');
+}
+
+function flattenCode(code) {
+  return code.split('\n').filter(l => l.trim()).join('\n');
+}
+
+// =========================== Tab 切换 ============================
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    const tabId = 'tab-' + btn.dataset.tab;
+    if ($(tabId)) $(tabId).classList.add('active');
+  });
+});
+
+// =========================== 颜色工具 ============================
+function hexToRGBA(hex) {
+  const r = parseInt(hex.slice(1,3), 16) / 255;
+  const g = parseInt(hex.slice(3,5), 16) / 255;
+  const b = parseInt(hex.slice(5,7), 16) / 255;
+  return `${r.toFixed(2)}f, ${g.toFixed(2)}f, ${b.toFixed(2)}f, 1f`;
+}
+
+function getDrawColorCode() {
+  const preset = $('draw-color-preset').value;
+  if (preset === 'danger') return 'accessory.Data.DefaultDangerColor';
+  if (preset === 'safe') return 'accessory.Data.DefaultSafeColor';
+  if (preset === 'myColor') return 'MyColor'; // placeholder
+  const hex = $('draw-color').value;
+  return `new ScriptColor { V4 = new Vector4(${hexToRGBA(hex)}) }`;
+}
+
+function getGuideColorCode() {
+  const preset = $('guide-color-preset').value;
+  if (preset === 'danger') return 'accessory.Data.DefaultDangerColor';
+  if (preset === 'safe') return 'accessory.Data.DefaultSafeColor';
+  if (preset === 'myColor') return 'MyColor';
+  const hex = $('guide-color').value;
+  return `new ScriptColor { V4 = new Vector4(${hexToRGBA(hex)}) }`;
+}
+
+function setDrawColor(hex) {
+  $('draw-color').value = hex;
+  $('draw-color-preset').value = 'custom';
+}
+
+function applyDrawColorPreset() {
+  const v = $('draw-color-preset').value;
+  $('draw-color').style.display = (v === 'custom') ? '' : 'none';
+}
+
+// =========================== 画图表单联动 ============================
+function updateDrawOwnerMode() {
+  $('row-owner').style.display = $('draw-use-owner').checked ? '' : 'none';
+}
+
+function updateDrawTargetMode() {
+  $('row-target-object').style.display = $('draw-use-target').checked ? '' : 'none';
+  $('row-target-pos').style.display = $('draw-use-target-pos').checked ? '' : 'none';
+}
+
+function updateDrawFixRotation() {
+  $('row-fix-rotation').style.display = $('draw-use-fix-rotation').checked ? '' : 'none';
+}
+
+$('draw-type').addEventListener('change', function() {
+  const t = this.value;
+  const sx = $('row-scale-x');
+  const sy = $('row-scale-y');
+  const rad = $('row-radian');
+  const mode = $('draw-mode');
+
+  sx.style.display = ''; sy.style.display = 'none'; rad.style.display = 'none';
+
+  if (t === 'Fan') {
+    rad.style.display = '';
+    mode.value = 'Default';
+    $('draw-scale-x').value = 60;
+  } else if (t === 'Circle') {
+    mode.value = 'Default';
+    $('draw-scale-x').value = 10;
+  } else if (t === 'Rect') {
+    sy.style.display = '';
+    mode.value = 'Default';
+    $('draw-scale-x').value = 40;
+    $('draw-scale-y').value = 8;
+  } else if (t === 'Donut') {
+    sy.style.display = '';
+    mode.value = 'Default';
+    $('draw-scale-x').value = 10;
+    $('draw-scale-y').value = 20;
+  } else if (t === 'Straight') {
+    mode.value = 'Default';
+    $('draw-scale-x').value = 1;
+  } else if (t === 'Displacement') {
+    mode.value = 'Imgui';
+    $('draw-scale-x').value = 2;
+  } else if (t === 'Arrow') {
+    mode.value = 'Imgui';
+    $('draw-scale-x').value = 1;
+  } else if (t === 'SightAvoid') {
+    mode.value = 'Default';
+    $('draw-scale-x').value = 20;
+  }
+});
+
+$('draw-radian').addEventListener('change', function() {
+  $('draw-radian-custom').style.display = this.value === '0' ? '' : 'none';
+});
+
+$('draw-use-centre-resolve').addEventListener('change', function() {
+  $('row-centre-resolve').style.display = this.checked ? '' : 'none';
+  $('row-centre-index').style.display = this.checked ? '' : 'none';
+});
+
+$('guide-color-preset').addEventListener('change', function() {
+  $('guide-color').style.display = this.value === 'custom' ? '' : 'none';
+});
+
+function updateGuideType() { /* 预留 */ }
+function updateGuideTargetType() {
+  const v = $('guide-target-type').value;
+  $('guide-target-pos-fields').style.display = v === 'pos' ? '' : 'none';
+  $('guide-target-obj-fields').style.display = v === 'obj' ? '' : 'none';
+}
+
+function setGuidePos(x, z, label) {
+  $('guide-pos-x').value = x;
+  $('guide-pos-z').value = z;
+  showToast(`已设置坐标: ${label} (${x}, 0, ${z})`);
+}
+
+// =========================== 画图代码生成 ============================
+function generateDrawCode() {
+  const type = $('draw-type').value;
+  const mode = $('draw-mode').value;
+  const name = $('draw-name').value || 'MyDrawing';
+  const scaleX = parseFloat($('draw-scale-x').value) || 10;
+  const scaleY = parseFloat($('draw-scale-y').value) || 8;
+  const delay = parseInt($('draw-delay').value) || 0;
+  const destroy = parseInt($('draw-destroy').value) || 7000;
+  const color = getDrawColorCode();
+  const useForeach = $('draw-use-foreach').checked;
+  const useOwner = $('draw-use-owner').checked;
+  const useTargetObj = $('draw-use-target').checked;
+  const useTargetPos = $('draw-use-target-pos').checked;
+  const useFixRotation = $('draw-use-fix-rotation').checked;
+  const useCentreResolve = $('draw-use-centre-resolve').checked;
+
+  let lines = [];
+  const dp = 'var dp = accessory.Data.GetDefaultDrawProperties();';
+  const send = `accessory.Method.SendDraw(DrawModeEnum.${mode}, DrawTypeEnum.${type}, dp);`;
+
+  if (useForeach) {
+    lines.push('foreach (var pm in accessory.Data.PartyList)');
+    lines.push('{');
+    lines.push('    ' + dp);
+  } else {
+    lines.push(dp);
+  }
+
+  const prefix = useForeach ? '    ' : '';
+
+  lines.push(`${prefix}dp.Name = "${name}";`);
+
+  // Scale
+  if (type === 'Rect' || type === 'Donut') {
+    lines.push(`${prefix}dp.Scale = new Vector2(${scaleX}f, ${scaleY}f);`);
+  } else {
+    lines.push(`${prefix}dp.Scale = new Vector2(${scaleX}f);`);
+  }
+
+  // Radian
+  if (type === 'Fan') {
+    const radVal = $('draw-radian').value;
+    if (radVal === '0') {
+      lines.push(`${prefix}dp.Radian = ${parseFloat($('draw-radian-custom').value) || 0.785}f;`);
+    } else {
+      lines.push(`${prefix}dp.Radian = float.${radVal.replace('PI', 'Pi')};`);
+    }
+  }
+
+  // Owner
+  if (useOwner) {
+    const ownerVal = $('draw-owner').value;
+    if (useForeach && ownerVal === 'accessory.Data.PartyList[i]') {
+      lines.push(`${prefix}dp.Owner = pm;`);
+    } else {
+      lines.push(`${prefix}dp.Owner = ${ownerVal};`);
+    }
+  }
+
+  // TargetObject
+  if (useTargetObj) {
+    lines.push(`${prefix}dp.TargetObject = ${$('draw-target-object').value};`);
+  }
+
+  // TargetPosition
+  if (useTargetPos) {
+    const x = parseFloat($('draw-pos-x').value) || 100;
+    const z = parseFloat($('draw-pos-z').value) || 100;
+    lines.push(`${prefix}dp.TargetPosition = new Vector3(${x}f, 0f, ${z}f);`);
+  }
+
+  // FixRotation
+  if (useFixRotation) {
+    lines.push(`${prefix}dp.FixRotation = true;`);
+    const rotVal = $('draw-rotation').value;
+    if (rotVal === '0') {
+      lines.push(`${prefix}dp.Rotation = ${parseFloat($('draw-rotation-custom').value) || 0}f;`);
+    } else {
+      lines.push(`${prefix}dp.Rotation = float.${rotVal.replace('PI', 'Pi')};`);
+    }
+  }
+
+  // Colour
+  lines.push(`${prefix}dp.Color = ${color};`);
+
+  // Delay
+  if (delay > 0) {
+    lines.push(`${prefix}dp.Delay = ${delay};`);
+  }
+
+  // DestoryAt
+  lines.push(`${prefix}dp.DestoryAt = ${destroy};`);
+
+  // CentreResolve
+  if (useCentreResolve) {
+    lines.push(`${prefix}dp.CentreResolvePattern = PositionResolvePatternEnum.PlayerNearestOrder;`);
+    lines.push(`${prefix}dp.CentreOrderIndex = ${parseInt($('draw-centre-index').value) || 1};`);
+  }
+
+  // SendDraw
+  lines.push(`${prefix}${send}`);
+
+  if (useForeach) {
+    lines.push('}');
+  }
+
+  $('draw-code-output').innerHTML =
+    `<div class="code-header"><span class="code-lang">C# 画图代码 — ${type}</span></div>\n${escapeHtml(lines.join('\n'))}`;
+}
+
+// =========================== 指路代码生成 ============================
+function generateGuideCode() {
+  const type = $('guide-type').value;
+  const name = $('guide-name').value || '指路';
+  const owner = $('guide-owner').value;
+  const targetType = $('guide-target-type').value;
+  const scale = parseFloat($('guide-scale').value) || 2;
+  const destroy = parseInt($('guide-destroy').value) || 7000;
+  const color = getGuideColorCode();
+
+  let lines = [];
+  lines.push('var dp = accessory.Data.GetDefaultDrawProperties();');
+  lines.push(`dp.Name = "${name}";`);
+  lines.push(`dp.Scale = new Vector2(${scale}f);`);
+  lines.push(`dp.Owner = ${owner};`);
+
+  if (targetType === 'pos') {
+    const x = parseFloat($('guide-pos-x').value) || 100;
+    const z = parseFloat($('guide-pos-z').value) || 90;
+    lines.push(`dp.TargetPosition = new Vector3(${x}f, 0f, ${z}f);`);
+  } else {
+    lines.push(`dp.TargetObject = ${$('guide-target-obj').value};`);
+  }
+
+  lines.push(`dp.Color = ${color};`);
+  lines.push(`dp.DestoryAt = ${destroy};`);
+
+  if (type === 'displacement') {
+    lines.push('accessory.Method.SendDraw(DrawModeEnum.Imgui, DrawTypeEnum.Displacement, dp);');
+  } else if (type === 'arrow') {
+    lines.push('accessory.Method.SendDraw(DrawModeEnum.Imgui, DrawTypeEnum.Arrow, dp);');
+  } else {
+    lines.push('accessory.Method.SendDraw(DrawModeEnum.Default, DrawTypeEnum.Straight, dp);');
+  }
+
+  $('guide-code-output').innerHTML =
+    `<div class="code-header"><span class="code-lang">C# 指路代码</span></div>\n${escapeHtml(lines.join('\n'))}`;
+}
+
+// =========================== 标记代码生成 ============================
+function generateMarkCode() {
+  let lines = [];
+  const name = $('mark-name').value || '标记';
+  const markType = $('mark-type').value;
+  const markTarget = $('mark-target').value;
+  const useForeach = $('mark-use-foreach').checked;
+  const clearFirst = $('mark-clear').value === 'yes';
+
+  if (clearFirst) {
+    lines.push('accessory.Method.MarkClear();');
+    lines.push('');
+  }
+
+  if (useForeach) {
+    const count = parseInt($('mark-count').value) || 4;
+    const listType = $('mark-list').value;
+
+    let markListCode = '';
+    if (listType === 'attack') markListCode = 'MarkType.Attack1, MarkType.Attack2, MarkType.Attack3, MarkType.Attack4';
+    else if (listType === 'stop') markListCode = 'MarkType.Stop1, MarkType.Stop2';
+    else if (listType === 'bind') markListCode = 'MarkType.Bind1, MarkType.Bind2';
+    else if (listType === 'mix_tether') markListCode = 'MarkType.Stop1, MarkType.Bind1, MarkType.Stop2, MarkType.Bind2';
+    else if (listType === 'mix_untether') markListCode = 'MarkType.Attack1, MarkType.Attack2, MarkType.Attack3, MarkType.Attack4';
+
+    lines.push(`List<MarkType> ${name}_marks = [${markListCode}];`);
+    lines.push(`for (int i = 0; i < Math.Min(${count}, accessory.Data.PartyList.Count); i++)`);
+    lines.push('{');
+    lines.push(`    accessory.Method.Mark(accessory.Data.PartyList[i], ${name}_marks[i]);`);
+    lines.push('}');
+  } else {
+    lines.push(`accessory.Method.Mark(${markTarget}, ${markType});`);
+  }
+
+  $('mark-code-output').innerHTML =
+    `<div class="code-header"><span class="code-lang">C# 标记代码</span></div>\n${escapeHtml(lines.join('\n'))}`;
+}
+
+// =========================== 事件方法模板生成 ============================
+function generateEventCode() {
+  const nameZh = $('event-name-zh').value || '功能';
+  const nameCs = $('event-name-cs').value || 'Feature';
+  const eventType = $('event-type').value;
+  const cond1 = $('event-cond1').value;
+  const cond2 = $('event-cond2').value;
+  const suppress = parseInt($('event-suppress').value) || 0;
+  const userControl = $('event-user-control').value;
+
+  let conds = [];
+  if (cond1) conds.push(`"${cond1}"`);
+  if (cond2) conds.push(`"${cond2}"`);
+
+  let attrLines = [];
+  attrLines.push(`[ScriptMethod(name: "${nameZh}",`);
+  attrLines.push(`    eventType: EventTypeEnum.${eventType},`);
+  attrLines.push(`    eventCondition: [${conds.join(', ')}],`);
+  if (suppress > 0) attrLines.push(`    suppress: ${suppress},`);
+  attrLines.push(`    userControl: ${userControl})]`);
+
+  let lines = [];
+  lines.push(attrLines.join('\n'));
+  lines.push('');
+  lines.push(`public void ${nameCs}(Event @event, ScriptAccessory accessory)`);
+  lines.push('{');
+  if (eventType === 'StartCasting' || eventType === 'ActionEffect') {
+    lines.push('    if (!ParseObjectId(@event["SourceId"], out var sid)) return;');
+  }
+  if (eventType === 'StatusAdd' || eventType === 'StatusRemove') {
+    lines.push('    if (!ParseObjectId(@event["SourceId"], out var sid)) return;');
+    lines.push('    // var duration = int.Parse(@event["Duration"]);');
+  }
+  lines.push('');
+  lines.push('    // TODO: 在此处添加你的画图/指路/标记代码');
+  lines.push('');
+  lines.push('}');
+
+  $('event-code-output').innerHTML =
+    `<div class="code-header"><span class="code-lang">C# 事件方法模板</span></div>\n${escapeHtml(lines.join('\n'))}`;
+}
+
+// =========================== 组合模板 ============================
+function loadTemplate(templateName) {
+  let code = '';
+
+  switch(templateName) {
+    case 'boss-fan':
+      code = `// ===== Boss扇形AOE + 分散提示 =====
+[ScriptMethod(name: "Boss扇形AOE_分散提示",
+    eventType: EventTypeEnum.StartCasting,
+    eventCondition: ["ActionId:regex:^(40145)$"])]
+public void BossFanAOE_SpreadWarning(Event @event, ScriptAccessory accessory)
+{
+    if (!ParseObjectId(@event["SourceId"], out var bossId)) return;
+
+    // ----- 画图：给每个队员画扇形AOE -----
+    foreach (var pm in accessory.Data.PartyList)
+    {
+        var dp = accessory.Data.GetDefaultDrawProperties();
+        dp.Name = $"Boss扇形AOE_{pm}";
+        dp.Scale = new Vector2(60);
+        dp.Radian = float.Pi / 8;
+        dp.Owner = bossId;
+        dp.TargetObject = pm;
+        dp.Color = accessory.Data.DefaultDangerColor;
+        dp.DestoryAt = 7000;
+        accessory.Method.SendDraw(DrawModeEnum.Default, DrawTypeEnum.Fan, dp);
+    }
+
+    // ----- 画图：延时后显示分散圈 -----
+    foreach (var pm in accessory.Data.PartyList)
+    {
+        var dp = accessory.Data.GetDefaultDrawProperties();
+        dp.Name = $"分散圈_{pm}";
+        dp.Scale = new Vector2(6);
+        dp.Owner = pm;
+        dp.Color = accessory.Data.DefaultDangerColor;
+        dp.Delay = 5000;
+        dp.DestoryAt = 4000;
+        accessory.Method.SendDraw(DrawModeEnum.Default, DrawTypeEnum.Circle, dp);
+    }
+
+    // ----- 文字提示 -----
+    accessory.Method.TextInfo("扇形AOE！分散！", 3000);
+}`;
+      break;
+
+    case 'boss-circle-stack':
+      code = `// ===== Boss圆形AOE + 分组分摊指示 =====
+[ScriptMethod(name: "Boss圆形AOE_分组分摊",
+    eventType: EventTypeEnum.StartCasting,
+    eventCondition: ["ActionId:regex:^(4014[89])$"])]
+public void BossCircleAOE_GroupStack(Event @event, ScriptAccessory accessory)
+{
+    if (!ParseObjectId(@event["SourceId"], out var bossId)) return;
+
+    // ----- 画图：BossAOE范围圈 -----
+    var aoeDp = accessory.Data.GetDefaultDrawProperties();
+    aoeDp.Name = "BossAOE范围";
+    aoeDp.Scale = new Vector2(15);
+    aoeDp.Owner = bossId;
+    aoeDp.Color = accessory.Data.DefaultDangerColor;
+    aoeDp.DestoryAt = 7000;
+    accessory.Method.SendDraw(DrawModeEnum.Default, DrawTypeEnum.Circle, aoeDp);
+
+    // ----- 画图：分组分摊（H1组 vs H2组）-----
+    // 假设 H1=index2, H2=index3
+    bool isH1group = true; // TODO: 根据实际逻辑判断
+
+    for (int i = 0; i < accessory.Data.PartyList.Count; i++)
+    {
+        var dp = accessory.Data.GetDefaultDrawProperties();
+        dp.Name = $"分摊圈_{i}";
+        dp.Scale = new Vector2(6);
+        dp.Owner = accessory.Data.PartyList[i];
+        dp.Color = isH1group
+            ? accessory.Data.DefaultSafeColor
+            : accessory.Data.DefaultDangerColor;
+        dp.Delay = 5000;
+        dp.DestoryAt = 4000;
+        accessory.Method.SendDraw(DrawModeEnum.Default, DrawTypeEnum.Circle, dp);
+    }
+
+    // ----- 文字提示 -----
+    accessory.Method.TextInfo("分摊！按分组处理！", 2000);
+}`;
+      break;
+
+    case 'boss-donut':
+      code = `// ===== Boss月环（Donut）=====
+[ScriptMethod(name: "Boss月环AOE",
+    eventType: EventTypeEnum.StartCasting,
+    eventCondition: ["ActionId:regex:^(99999)$"])]
+public void BossDonutAOE(Event @event, ScriptAccessory accessory)
+{
+    if (!ParseObjectId(@event["SourceId"], out var bossId)) return;
+
+    // ----- 画图：环形AOE（内圈安全，外圈危险）-----
+    var dp = accessory.Data.GetDefaultDrawProperties();
+    dp.Name = "Boss月环AOE";
+    dp.Scale = new Vector2(8, 20);  // 内径8米(安全), 外径20米(危险)
+    dp.Owner = bossId;
+    dp.Color = accessory.Data.DefaultDangerColor;
+    dp.DestoryAt = 7000;
+    accessory.Method.SendDraw(DrawModeEnum.Default, DrawTypeEnum.Donut, dp);
+
+    // ----- 指路：引导去Boss脚下（内圈安全区）-----
+    var guideDp = accessory.Data.GetDefaultDrawProperties();
+    guideDp.Name = "指路_去Boss脚下";
+    guideDp.Scale = new Vector2(2);
+    guideDp.Owner = accessory.Data.Me;
+    guideDp.TargetObject = bossId;
+    guideDp.Color = accessory.Data.DefaultSafeColor;
+    guideDp.DestoryAt = 7000;
+    accessory.Method.SendDraw(DrawModeEnum.Imgui, DrawTypeEnum.Displacement, guideDp);
+
+    accessory.Method.TextInfo("月环！靠近Boss！", 3000);
+}`;
+      break;
+
+    case 'guide-position':
+      code = `// ===== 指路 — 引导去安全位置 =====
+[ScriptMethod(name: "指路_去安全位置",
+    eventType: EventTypeEnum.StatusAdd,
+    eventCondition: ["StatusID:4165"])]
+public void Guide_ToSafePosition(Event @event, ScriptAccessory accessory)
+{
+    // ----- 计算我的安全位置 -----
+    // 示例：根据方位计算4个安全方向之一
+    // 实际项目中替换为真正的计算逻辑
+    Vector3[] safePositions = [
+        new Vector3(100, 0, 87),   // 正北
+        new Vector3(107, 0, 100),  // 正东
+        new Vector3(100, 0, 113),  // 正南
+        new Vector3(93, 0, 100),   // 正西
+    ];
+
+    int myDir = PositionTo8Dir(new Vector3(100,0,100), new Vector3(100,0,100));
+    Vector3 myTarget = safePositions[0];
+
+    // ----- 指路 -----
+    var dp = accessory.Data.GetDefaultDrawProperties();
+    dp.Name = "指路_安全位置";
+    dp.Scale = new Vector2(2);
+    dp.Owner = accessory.Data.Me;
+    dp.TargetPosition = myTarget;
+    dp.Color = accessory.Data.DefaultSafeColor;
+    dp.DestoryAt = 7000;
+    accessory.Method.SendDraw(DrawModeEnum.Imgui, DrawTypeEnum.Displacement, dp);
+
+    accessory.Method.TextInfo("去安全位置！", 2000);
+}`;
+      break;
+
+    case 'mark-players':
+      code = `// ===== 标记 — 批量标记队员 =====
+[ScriptMethod(name: "标记_标记队员",
+    eventType: EventTypeEnum.StatusAdd,
+    eventCondition: ["StatusID:4165"])]
+public void Mark_Players(Event @event, ScriptAccessory accessory)
+{
+    // 安全检查 — 只有启用标记功能的人才执行
+    if (!EnableMarking) return;
+
+    // ----- 先清除所有旧标记 -----
+    accessory.Method.MarkClear();
+
+    // ----- 标记列表定义 -----
+    List<MarkType> marks = [
+        MarkType.Attack1,   // 最高优先级
+        MarkType.Attack2,
+        MarkType.Attack3,
+        MarkType.Attack4,   // 最低优先级
+    ];
+
+    // ----- 按优先级顺序标记 -----
+    // TODO: 在实际项目中根据机制排序
+    for (int i = 0; i < Math.Min(4, accessory.Data.PartyList.Count); i++)
+    {
+        accessory.Method.Mark(accessory.Data.PartyList[i], marks[i]);
+    }
+}`;
+      break;
+
+    case 'full-phase':
+      code = `// ===== 完整阶段 — 画图 + 指路 + 标记 + 双语提示 =====
+
+// ========== 用户设置（放在类的 #region User_Settings 中） ==========
+[UserSetting("启用文本提示")]
+public bool EnableTextPrompts { get; set; } = true;
+
+[UserSetting("提示语言")]
+public Language PromptLanguage { get; set; }
+
+[UserSetting("启用标记 (队伍中只能一人启用!)")]
+public bool EnableMarking { get; set; } = false;
+
+[UserSetting("危险范围颜色")]
+public ScriptColor DangerColor { get; set; } = new() { V4 = new(1f, 0f, 0f, 1f) };
+
+[UserSetting("安全指路颜色")]
+public ScriptColor GuideColor { get; set; } = new() { V4 = new(0f, 1f, 0f, 1f) };
+
+public enum Language
+{
+    SimplifiedChinese_简体中文,
+    English_英文
+}
+
+// ========== 工具函数 ==========
+private string _(string ch, string en)
+{
+    return PromptLanguage == Language.SimplifiedChinese_简体中文 ? ch : en;
+}
+
+// ========== 主方法 ==========
+[ScriptMethod(name: "完整示例_扇形AOE+指路+标记",
+    eventType: EventTypeEnum.StartCasting,
+    eventCondition: ["ActionId:regex:^(40145)$"])]
+public void FullExample_FanAOEGuideMark(Event @event, ScriptAccessory accessory)
+{
+    if (!ParseObjectId(@event["SourceId"], out var bossId)) return;
+
+    // ===== 1. 画图：Boss扇形AOE =====
+    foreach (var pm in accessory.Data.PartyList)
+    {
+        var dp = accessory.Data.GetDefaultDrawProperties();
+        dp.Name = $"扇形AOE_{pm}";
+        dp.Scale = new Vector2(60);
+        dp.Radian = float.Pi / 8;
+        dp.Owner = bossId;
+        dp.TargetObject = pm;
+        dp.Color = DangerColor;
+        dp.DestoryAt = 7000;
+        accessory.Method.SendDraw(DrawModeEnum.Default, DrawTypeEnum.Fan, dp);
+    }
+
+    // ===== 2. 指路：引导去安全位置 =====
+    Vector3 safePos = new Vector3(100, 0, 90);
+    var guideDp = accessory.Data.GetDefaultDrawProperties();
+    guideDp.Name = "指路_安全位置";
+    guideDp.Scale = new Vector2(2);
+    guideDp.Owner = accessory.Data.Me;
+    guideDp.TargetPosition = safePos;
+    guideDp.Color = GuideColor;
+    guideDp.DestoryAt = 7000;
+    accessory.Method.SendDraw(DrawModeEnum.Imgui, DrawTypeEnum.Displacement, guideDp);
+
+    // ===== 3. 标记：标记高优先级队员 =====
+    if (EnableMarking)
+    {
+        accessory.Method.MarkClear();
+        List<MarkType> marks = [MarkType.Attack1, MarkType.Attack2, MarkType.Attack3, MarkType.Attack4];
+        for (int i = 0; i < Math.Min(4, accessory.Data.PartyList.Count); i++)
+        {
+            accessory.Method.Mark(accessory.Data.PartyList[i], marks[i]);
+        }
+    }
+
+    // ===== 4. 文字提示（双语） =====
+    if (EnableTextPrompts)
+    {
+        string prompt = _("扇形AOE！去安全位置！", "Fan AOE! Go to safe position!");
+        accessory.Method.TextInfo(prompt, 3000);
+    }
+
+    // ===== 5. TTS语音 =====
+    if (EnableVanillaTTS || EnableDailyRoutinesTTS)
+    {
+        string ttsText = _("扇形AOE", "Fan AOE");
+        accessory.TTS(ttsText, EnableVanillaTTS, EnableDailyRoutinesTTS);
+    }
+}`;
+      break;
+  }
+
+  $('combo-code-output').innerHTML =
+    `<div class="code-header"><span class="code-lang">C# — 组合模板</span></div>\n${escapeHtml(code)}`;
+}
+
+// =========================== 重置 ============================
+function resetDrawForm() {
+  $('draw-type').value = 'Circle';
+  $('draw-name').value = '我的绘图_唯一名称';
+  $('draw-mode').value = 'Default';
+  $('draw-scale-x').value = 10;
+  $('draw-scale-y').value = 8;
+  $('draw-delay').value = 0;
+  $('draw-destroy').value = 7000;
+  $('draw-color-preset').value = 'danger';
+  $('draw-use-owner').checked = true;
+  $('draw-use-target').checked = false;
+  $('draw-use-target-pos').checked = false;
+  $('draw-use-fix-rotation').checked = false;
+  $('draw-use-foreach').checked = false;
+  $('draw-use-centre-resolve').checked = false;
+  updateDrawOwnerMode();
+  updateDrawTargetMode();
+  updateDrawFixRotation();
+  $('draw-type').dispatchEvent(new Event('change'));
+}
+
+function resetGuideForm() {
+  $('guide-type').value = 'displacement';
+  $('guide-name').value = '指路_去安全位置';
+  $('guide-owner').value = 'accessory.Data.Me';
+  $('guide-target-type').value = 'pos';
+  $('guide-pos-x').value = 100;
+  $('guide-pos-z').value = 90;
+  $('guide-scale').value = 2;
+  $('guide-destroy').value = 7000;
+  $('guide-color-preset').value = 'safe';
+  updateGuideTargetType();
+}
+
+function resetMarkForm() {
+  $('mark-name').value = '标记_玩家标记';
+  $('mark-target').value = 'accessory.Data.PartyList[i]';
+  $('mark-type').value = 'MarkType.Attack1';
+  $('mark-use-foreach').checked = true;
+  $('mark-clear').value = 'yes';
+  $('mark-count').value = '4';
+  $('mark-list').value = 'attack';
+}
+
+function resetEventForm() {
+  $('event-name-zh').value = '画图_示例功能';
+  $('event-name-cs').value = 'Draw_ExampleFeature';
+  $('event-type').value = 'StartCasting';
+  $('event-cond1').value = 'ActionId:regex:^(40145)$';
+  $('event-cond2').value = '';
+  $('event-suppress').value = 0;
+  $('event-user-control').value = 'true';
+}
+
+function updateEventType() { /* 预留，可以自动建议condition字段 */ }
+
+// =========================== HTML 转义 ============================
+function escapeHtml(text) {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+// =========================== 初始化 ============================
+$('draw-type').dispatchEvent(new Event('change'));
+$('guide-color-preset').dispatchEvent(new Event('change'));
+updateGuideTargetType();
+</script>
+
+</body>
+</html>
