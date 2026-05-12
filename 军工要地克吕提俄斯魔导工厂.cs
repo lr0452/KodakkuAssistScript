@@ -12,24 +12,20 @@ namespace LRXR.Workspace.MyScripts;
     guid: "dbf88c7b-f119-423c-954c-26aa86e58704",
     version: "0.0.0.6",
     author: "LRXR",
-    note:"修复部分BUG \\n" +
-         " 鸣谢 Veever")]
+    note: "修复部分BUG \n" +
+          " 鸣谢 Veever")]
 public class 军工要地克吕提俄斯魔导工厂
 {
     // ============================================================
     // 用户设置
     // ============================================================
-    [UserSetting("启用文字提示")]
-    public bool EnableTextPrompts { get; set; } = true;
+    [UserSetting("启用文字提示")] public bool EnableTextPrompts { get; set; } = true;
 
-    [UserSetting("启用开发者调试模式")]
-    public bool EnableDeveloperMode { get; set; } = false;
+    [UserSetting("启用开发者调试模式")] public bool EnableDeveloperMode { get; set; } = false;
 
-    [UserSetting("安全的颜色")]
-    public ScriptColor SafeColour { get; set; } = new() { V4 = new Vector4(0, 1, 0, 1) };
+    [UserSetting("安全的颜色")] public ScriptColor SafeColour { get; set; } = new() { V4 = new Vector4(0, 1, 0, 1) };
 
-    [UserSetting("危险的颜色")]
-    public ScriptColor DangerColour { get; set; } = new() { V4 = new Vector4(1, 0, 0, 1) };
+    [UserSetting("危险的颜色")] public ScriptColor DangerColour { get; set; } = new() { V4 = new Vector4(1, 0, 0, 1) };
 
     // ============================================================
     // 初始化
@@ -43,7 +39,9 @@ public class 军工要地克吕提俄斯魔导工厂
     // ============================================================
     // 通用技能方法
     // ============================================================
+
     #region 通用技能方法
+
     [ScriptMethod(name: "屏幕提示",
         eventType: EventTypeEnum.StartCasting,
         eventCondition: ["ActionId:regex:^(48896|50408|48920|48931)$"])]
@@ -72,10 +70,13 @@ public class 军工要地克吕提俄斯魔导工厂
         DrawCircleOnTarget(accessory, targetId, 6, durationMs, SafeColour.V4);
         GuideSelfToTarget(accessory, targetId, durationMs, SafeColour.V4);
     }
+
     #endregion
 
     // ---- BOSS 1 装甲之眼 ----
+
     #region BOSS 1 装甲之眼
+
     [ScriptMethod(name: "石化光束",
         eventType: EventTypeEnum.StartCasting,
         eventCondition: ["ActionId:regex:^(50177|50178)$"])]
@@ -87,7 +88,9 @@ public class 军工要地克吕提俄斯魔导工厂
         DrawDangerFan(accessory, bossPos, bossFacing, 100, 100, durationMs, DangerColour.V4);
         DrawSafeFan(accessory, bossPos, bossFacing, 100, 100, durationMs, SafeColour.V4);
     }
+
     #endregion
+
     // ---- BOSS 2 乔尔特 ----
 
     #region BOSS 2 乔尔特
@@ -95,7 +98,7 @@ public class 军工要地克吕提俄斯魔导工厂
     [ScriptMethod(name: "肉弹",
         eventType: EventTypeEnum.StartCasting,
         eventCondition: ["ActionId:regex:^(48868|48869|48870|48871|48876|50313)$"])]
-    public void 肉弹(Event @event, ScriptAccessory accessory) 
+    public void 肉弹(Event @event, ScriptAccessory accessory)
     {
         if (!ParseObjectId(@event["SourceId"], out var sourceId)) return;
         if (!TryGetDurationMs(@event, out int durationMs)) return;
@@ -108,13 +111,13 @@ public class 军工要地克吕提俄斯魔导工厂
 
     [ScriptMethod(name: "肉压杀",
         eventType: EventTypeEnum.StartCasting,
-        eventCondition: ["ActionId:48878"])]
+        eventCondition: ["ActionId:regex:^(48878)$"])]
     public void 肉压杀(Event @event, ScriptAccessory accessory)
     {
         if (!ParseObjectId(@event["SourceId"], out var sourceId)) return;
         if (!TryGetDurationMs(@event, out int durationMs)) return;
 
-        GuideKnockback(accessory, sourceId, @event.SourcePosition, durationMs, 8.0f,DangerColour.V4, SafeColour.V4);
+        GuideKnockback(accessory, sourceId, @event.SourcePosition, durationMs, 8.0f, DangerColour.V4, SafeColour.V4);
 
         if (EnableTextPrompts)
             accessory.Method.TextInfo("击退", durationMs);
@@ -142,10 +145,13 @@ public class 军工要地克吕提俄斯魔导工厂
 
         DrawSteel(accessory, towerPos, 4, durationMs, SafeColour.V4);
     }
+
     #endregion
+
     // ---- BOSS 3 玛帕斯 ----
 
     #region BOSS 3 玛帕斯
+
     [ScriptMethod(name: "虚无黑暗",
         eventType: EventTypeEnum.StartCasting,
         eventCondition: ["ActionId:regex:^(50313)$"])]
@@ -178,6 +184,7 @@ public class 军工要地克吕提俄斯魔导工厂
 
         DrawDangerFan(accessory, bossPos, bossFacing, 30, 100, durationMs, DangerColour.V4);
     }
+
     #endregion
 
     // ============================================================
@@ -188,16 +195,30 @@ public class 军工要地克吕提俄斯魔导工厂
     private static bool TryGetDurationMs(Event @event, out int durationMs)
     {
         durationMs = 0;
-        try { durationMs = JsonConvert.DeserializeObject<int>(@event["DurationMilliseconds"]); return true; }
-        catch { return false; }
+        try
+        {
+            durationMs = JsonConvert.DeserializeObject<int>(@event["DurationMilliseconds"]);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     /// <summary>提取 EffectPosition, 失败返回 false</summary>
     private static bool TryGetEffectPosition(Event @event, out Vector3 pos)
     {
         pos = Vector3.Zero;
-        try { pos = JsonConvert.DeserializeObject<Vector3>(@event["EffectPosition"]); return true; }
-        catch { return false; }
+        try
+        {
+            pos = JsonConvert.DeserializeObject<Vector3>(@event["EffectPosition"]);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     /// <summary>提取 Boss 位置+朝向+读条时间, 全部成功才返回 true</summary>
@@ -206,12 +227,34 @@ public class 军工要地克吕提俄斯魔导工厂
         pos = Vector3.Zero;
         facing = 0;
         durationMs = 0;
-        try { pos = JsonConvert.DeserializeObject<Vector3>(@event["SourcePosition"]); }
-        catch { return false; }
-        try { var r = JsonConvert.DeserializeObject<double>(@event["SourceRotation"]); facing = (float)r; }
-        catch { return false; }
-        try { durationMs = JsonConvert.DeserializeObject<int>(@event["DurationMilliseconds"]); }
-        catch { return false; }
+        try
+        {
+            pos = JsonConvert.DeserializeObject<Vector3>(@event["SourcePosition"]);
+        }
+        catch
+        {
+            return false;
+        }
+
+        try
+        {
+            var r = JsonConvert.DeserializeObject<double>(@event["SourceRotation"]);
+            facing = (float)r;
+        }
+        catch
+        {
+            return false;
+        }
+
+        try
+        {
+            durationMs = JsonConvert.DeserializeObject<int>(@event["DurationMilliseconds"]);
+        }
+        catch
+        {
+            return false;
+        }
+
         return true;
     }
 
@@ -220,7 +263,8 @@ public class 军工要地克吕提俄斯魔导工厂
     // ============================================================
 
     /// <summary>画危险扇形 (Boss面前, Position定位)</summary>
-    private static void DrawDangerFan(ScriptAccessory a, Vector3 pos, float facing, float angle, float radius, int durationMs, Vector4 color)
+    private static void DrawDangerFan(ScriptAccessory a, Vector3 pos, float facing, float angle, float radius,
+        int durationMs, Vector4 color)
     {
         var dp = a.Data.GetDefaultDrawProperties();
         dp.Position = pos;
@@ -233,7 +277,8 @@ public class 军工要地克吕提俄斯魔导工厂
     }
 
     /// <summary>画危险扇形 (绑Boss身上, Owner自动跟)</summary>
-    private static void DrawDangerFan(ScriptAccessory a, ulong ownerId, float angle, float radius, int durationMs, Vector4 color)
+    private static void DrawDangerFan(ScriptAccessory a, ulong ownerId, float angle, float radius, int durationMs,
+        Vector4 color)
     {
         var dp = a.Data.GetDefaultDrawProperties();
         dp.Owner = ownerId;
@@ -245,7 +290,8 @@ public class 军工要地克吕提俄斯魔导工厂
     }
 
     /// <summary>画安全扇形 (Boss背后, Position定位)</summary>
-    private static void DrawSafeFan(ScriptAccessory a, Vector3 pos, float facing, float dangerAngle, float radius, int durationMs, Vector4 color)
+    private static void DrawSafeFan(ScriptAccessory a, Vector3 pos, float facing, float dangerAngle, float radius,
+        int durationMs, Vector4 color)
     {
         var dp = a.Data.GetDefaultDrawProperties();
         dp.Position = pos;
@@ -258,7 +304,8 @@ public class 军工要地克吕提俄斯魔导工厂
     }
 
     /// <summary>画安全扇形 (绑Boss身上, Owner自动跟)</summary>
-    private static void DrawSafeFan(ScriptAccessory a, ulong ownerId, float dangerAngle, float radius, int durationMs, Vector4 color)
+    private static void DrawSafeFan(ScriptAccessory a, ulong ownerId, float dangerAngle, float radius, int durationMs,
+        Vector4 color)
     {
         var dp = a.Data.GetDefaultDrawProperties();
         dp.Owner = ownerId;
@@ -271,7 +318,8 @@ public class 军工要地克吕提俄斯魔导工厂
     }
 
     /// <summary>画矩形绑在实体身上</summary>
-    private static void DrawRectOnOwner(ScriptAccessory a, ulong ownerId, float width, float length, int durationMs, Vector4 color)
+    private static void DrawRectOnOwner(ScriptAccessory a, ulong ownerId, float width, float length, int durationMs,
+        Vector4 color)
     {
         var dp = a.Data.GetDefaultDrawProperties();
         dp.Owner = ownerId;
@@ -282,7 +330,8 @@ public class 军工要地克吕提俄斯魔导工厂
     }
 
     /// <summary>画圆绑在目标身上(跟人动)</summary>
-    private static void DrawCircleOnTarget(ScriptAccessory a, ulong targetId, float radius, int durationMs, Vector4 color)
+    private static void DrawCircleOnTarget(ScriptAccessory a, ulong targetId, float radius, int durationMs,
+        Vector4 color)
     {
         var dp = a.Data.GetDefaultDrawProperties();
         dp.Owner = targetId;
@@ -316,7 +365,8 @@ public class 军工要地克吕提俄斯魔导工厂
     }
 
     /// <summary>画月环 (Boss脚下, 內圈安全外圈危险)</summary>
-    private static void DrawDonut(ScriptAccessory a, Vector3 pos, float innerRadius, float outerRadius, int durationMs, Vector4 color)
+    private static void DrawDonut(ScriptAccessory a, Vector3 pos, float innerRadius, float outerRadius, int durationMs,
+        Vector4 color)
     {
         var dp = a.Data.GetDefaultDrawProperties();
         dp.Position = pos;
@@ -329,7 +379,8 @@ public class 军工要地克吕提俄斯魔导工厂
     }
 
     /// <summary>画月环 (绑Boss身上)</summary>
-    private static void DrawDonut(ScriptAccessory a, ulong ownerId, float innerRadius, float outerRadius, int durationMs, Vector4 color)
+    private static void DrawDonut(ScriptAccessory a, ulong ownerId, float innerRadius, float outerRadius,
+        int durationMs, Vector4 color)
     {
         var dp = a.Data.GetDefaultDrawProperties();
         dp.Owner = ownerId;
@@ -371,7 +422,8 @@ public class 军工要地克吕提俄斯魔导工厂
     }
 
     /// <summary>击退指路: 红线(Boss→玩家) + 绿线(玩家→远离Boss)</summary>
-    private static void GuideKnockback(ScriptAccessory a, ulong sourceId, Vector3 fromPos, int durationMs, float length, Vector4 dangerColor, Vector4 safeColor)
+    private static void GuideKnockback(ScriptAccessory a, ulong sourceId, Vector3 fromPos, int durationMs, float length,
+        Vector4 dangerColor, Vector4 safeColor)
     {
         // 红线: Boss → 玩家 (Default模式下 Owner+TargetObject 自动跟人)
         var dp = a.Data.GetDefaultDrawProperties();
@@ -420,6 +472,9 @@ public class 军工要地克吕提俄斯魔导工厂
                 System.Globalization.NumberStyles.HexNumber);
             return true;
         }
-        catch { return false; }
+        catch
+        {
+            return false;
+        }
     }
 }
