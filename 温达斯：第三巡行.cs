@@ -13,7 +13,7 @@ namespace LRXR.Workspace.MyScripts;
     name: "温达斯_第三巡行",
     territorys: [1368],
     guid: "160bfc20-949d-4edb-9eba-39e27f6e7aa0",
-    version: "0.0.0.4",
+    version: "0.0.0.5",
     author: "LRXR",
     note: "初版\n" +
           "BOSS1、BOSS2、BOSS3、BOSS4画完，1.5、2.5小怪还未画\n" +
@@ -538,11 +538,11 @@ public class 温达斯_第三巡行
             return;
         if (@event["ActionId"] == "49159")
         {
-            DrawDangerFan(accessory, bossPos, bossFacing, 90, 35, durationMs, DangerColour.V4);
+            DrawDonut(accessory, sourceId, 20, 60, durationMs, DangerColour.V4);
         }
         else
         {
-            DrawDonut(accessory, sourceId, 20, 60, durationMs, DangerColour.V4);
+            DrawDangerFan(accessory, bossPos, bossFacing, 90, 35, durationMs, DangerColour.V4);
         }
     }
 
