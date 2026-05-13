@@ -13,10 +13,11 @@ namespace LRXR.Workspace.MyScripts;
     name: "温达斯_第三巡行",
     territorys: [1368],
     guid: "160bfc20-949d-4edb-9eba-39e27f6e7aa0",
-    version: "0.0.0.5",
+    version: "0.0.0.6",
     author: "LRXR",
     note: "初版\n" +
           "BOSS1、BOSS2、BOSS3、BOSS4画完，1.5、2.5小怪还未画\n" +
+          "修复部分画图BUG\n" +
           "鸣谢 南雲鉄虎")]
 public class 温达斯_第三巡行
 {
@@ -37,10 +38,8 @@ public class 温达斯_第三巡行
     // ============================================================
     private readonly Queue<ulong> 展开布阵法_钻环跳圈的火炎_队列 = new();
     private readonly Queue<ulong> 戈耳狄系统_大放电_队列 = new();
-    private int 戈耳狄系统_已清除数;
 
     private string 黄昏披光暗_状态 = "";
-    private readonly List<(ulong sourceId, int durationMs)> 审理之光_待画 = new();
 
     // ============================================================
     // 初始化
@@ -48,13 +47,13 @@ public class 温达斯_第三巡行
     public void Init(ScriptAccessory accessory)
     {
         accessory.Method.RemoveDraw(".*");
-        戈耳狄系统_已清除数 = 0;
         DebugLog(accessory, "脚本已初始化");
     }
     // ============================================================
     // 通用技能方法
     // ============================================================
 
+    //怒不可遏的核爆、冲击波、强放逐IV、神圣审判、靠近乘凉的冰结、神歌、虚无世界、虚空之种、魂生、原子甩尾、空虚的宣言
     [ScriptMethod(name: "屏幕提示_非BUFF类",
         eventType: EventTypeEnum.StartCasting,
         eventCondition: ["ActionId:regex:^(50215|50187|50161|50153|50203|50317|50343|50349|50694|49130|49179)$"])]
@@ -96,16 +95,18 @@ public class 温达斯_第三巡行
     }
 
 
+    // 维多夫尼尔、陨星、百万神圣、期末考试、超新星|49182
     [ScriptMethod(name: "分摊",
         eventType: EventTypeEnum.StartCasting,
-        eventCondition: ["ActionId:regex:^(50214|50185|50158|50211|49182)$"])]
+        eventCondition: ["ActionId:regex:^(50214|50185|50158|50211)$"])]
     public void 分摊(Event @event, ScriptAccessory accessory)
     {
         if (!ParseObjectId(@event["TargetId"], out var targetId)) return;
         if (!TryGetDurationMs(@event, out int durationMs)) return;
         var color = @event["ActionId"] == "50214" ? DangerColour.V4 : SafeColour.V4;
-        if (@event["ActionId"] == "50158"||@event["ActionId"] == "49182") durationMs += 4000;
-        DrawCircleOnSourceOrTarget(accessory, targetId, 6, durationMs, color);
+        int radius = @event["ActionId"] == "50214" ? 5 : 6;
+        if (@event["ActionId"] == "50158") durationMs += 4000;
+        DrawCircleOnSourceOrTarget(accessory, targetId, radius, durationMs, color);
         if (@event["ActionId"] != "50214")
         {
             GuideSelfToTarget(accessory, targetId, durationMs, SafeColour.V4);
@@ -126,7 +127,7 @@ public class 温达斯_第三巡行
         if (!ParseObjectId(@event["SourceId"], out var sourceId)) return;
         if (!TryGetDurationMs(@event, out int durationMs)) return;
 
-        DrawRectOnOwner(accessory, sourceId, 12, 80, durationMs, DangerColour.V4);
+        DrawRectOnOwner(accessory, sourceId, 12, 80, 0, 0, 0, durationMs, DangerColour.V4);
     }
 
     [ScriptMethod(name: "粉身碎骨的地震",
@@ -137,7 +138,7 @@ public class 温达斯_第三巡行
         if (!ParseObjectId(@event["SourceId"], out var sourceId)) return;
         if (!TryGetDurationMs(@event, out int durationMs)) return;
 
-        DrawRectOnOwner(accessory, sourceId, 12, 30, durationMs, DangerColour.V4);
+        DrawRectOnOwner(accessory, sourceId, 12, 30, 0, 0, 0, durationMs, DangerColour.V4);
     }
 
     [ScriptMethod(name: "钻环跳圈的火炎",
@@ -248,11 +249,10 @@ public class 温达斯_第三巡行
         eventCondition: ["Id:regex:^(01AC)$"])]
     public void 戈耳狄系统_大放电(Event @event, ScriptAccessory accessory)
     {
-        // N个Tether两两一组: 第一组立刻画, 后续每组等前一组清了再画
         if (!ParseObjectId(@event["SourceId"], out var sourceId)) return;
         戈耳狄系统_大放电_队列.Enqueue(sourceId);
 
-        if (戈耳狄系统_大放电_队列.Count <= 2) // 第一组立刻画
+        if (戈耳狄系统_大放电_队列.Count <= 2)
         {
             DrawSteel(accessory, $"戈耳狄系统_大放电_{sourceId}", sourceId, 18, 30000, 0, DangerColour.V4);
         }
@@ -264,20 +264,18 @@ public class 温达斯_第三巡行
     public void 戈耳狄系统_大放电_清除(Event @event, ScriptAccessory accessory)
     {
         if (戈耳狄系统_大放电_队列.Count == 0) return;
-        if (!TryGetDurationMs(@event, out int durationMs)) return;
         var sourceId = 戈耳狄系统_大放电_队列.Dequeue();
-        戈耳狄系统_已清除数++;
 
         accessory.Method.RemoveDraw($"戈耳狄系统_大放电_{sourceId}");
 
-        // 每清完2个 → 画下一组前2个
-        if (戈耳狄系统_已清除数 % 2 == 0 && 戈耳狄系统_大放电_队列.Count > 0)
+
+        if (戈耳狄系统_大放电_队列.Count % 2 == 0 && 戈耳狄系统_大放电_队列.Count > 0)
         {
             int drawn = 0;
-            foreach (var nextSourceId in 戈耳狄系统_大放电_队列)
+            foreach (var id in 戈耳狄系统_大放电_队列)
             {
                 if (drawn >= 2) break;
-                DrawSteel(accessory, $"戈耳狄系统_大放电_{nextSourceId}", nextSourceId, 18, 30000, durationMs, DangerColour.V4);
+                DrawSteel(accessory, $"戈耳狄系统_大放电_{id}", id, 18, 30000, 0, DangerColour.V4);
                 drawn++;
             }
         }
@@ -349,7 +347,7 @@ public class 温达斯_第三巡行
         if (!ParseObjectId(@event["TargetId"], out var targetId)) return;
         if (!TryGetDurationMs(@event, out int durationMs)) return;
 
-        DrawRectOnOwner(accessory, targetId, 6, 16, durationMs, DangerColour.V4);
+        DrawRectOnOwner(accessory, targetId, 6, 16, 0, 0, 0, durationMs, DangerColour.V4);
     }
 
     [ScriptMethod(name: "空虚思考之物_极光帷幕",
@@ -360,7 +358,7 @@ public class 温达斯_第三巡行
         if (!ParseObjectId(@event["TargetId"], out var targetId)) return;
         if (!TryGetDurationMs(@event, out int durationMs)) return;
 
-        DrawRectOnOwner(accessory, targetId, 7, 7, durationMs, DangerColour.V4);
+        DrawRectOnOwner(accessory, targetId, 7, 7, 0, 0, 0, durationMs, DangerColour.V4);
     }
 
     [ScriptMethod(name: "记忆容器_虚空之种",
@@ -390,7 +388,7 @@ public class 温达斯_第三巡行
         if (!ParseObjectId(@event["SourceId"], out var sourceId)) return;
         if (!TryGetDurationMs(@event, out int durationMs)) return;
 
-        DrawRectOnOwner(accessory, sourceId, 50, 50, durationMs, DangerColour.V4);
+        DrawRectOnOwner(accessory, sourceId, 50, 50, 0, 0, 0, durationMs, DangerColour.V4);
     }
 
     [ScriptMethod(name: "黄泉灶食",
@@ -401,7 +399,7 @@ public class 温达斯_第三巡行
         if (!ParseObjectId(@event["SourceId"], out var sourceId)) return;
         if (!TryGetDurationMs(@event, out int durationMs)) return;
 
-        DrawRectOnOwner(accessory, sourceId, 5, 50, durationMs, DangerColour.V4);
+        DrawRectOnOwner(accessory, sourceId, 5, 50, 0, 0, 0, durationMs, DangerColour.V4);
     }
 
     [ScriptMethod(name: "诱引_踩塔",
@@ -442,7 +440,7 @@ public class 温达斯_第三巡行
         if (!ParseObjectId(@event["SourceId"], out var sourceId)) return;
         if (!TryGetDurationMs(@event, out int durationMs)) return;
 
-        DrawRectOnOwner(accessory, sourceId, 70, 50, durationMs, DangerColour.V4);
+        DrawRectOnOwner(accessory, sourceId, 70, 50, 0, 0, 0, durationMs, DangerColour.V4);
     }
 
     [ScriptMethod(name: "黄昏星云",
@@ -514,7 +512,8 @@ public class 温达斯_第三巡行
         if (!TryGetDurationMs(@event, out int durationMs)) return;
 
         DrawRectOnOwner(accessory, sourceId, @event["ActionId"] == "49154" ? 30 : 36,
-            @event["ActionId"] == "49154" ? 60 : 70, durationMs, DangerColour.V4);
+            @event["ActionId"] == "49154" ? 60 : 70, @event["ActionId"] == "49154" ? -15 : 0, 0,
+            @event["ActionId"] == "49154" ? 15 : 0, durationMs, DangerColour.V4);
     }
 
     [ScriptMethod(name: "右侧交错剑",
@@ -526,7 +525,8 @@ public class 温达斯_第三巡行
         if (!TryGetDurationMs(@event, out int durationMs)) return;
 
         DrawRectOnOwner(accessory, sourceId, @event["ActionId"] == "49153" ? 30 : 36,
-            @event["ActionId"] == "49153" ? 60 : 70, durationMs, DangerColour.V4);
+            @event["ActionId"] == "49153" ? 60 : 70, @event["ActionId"] == "49153" ? -15 : 0, 0,
+            @event["ActionId"] == "49153" ? 15 : 0, durationMs, DangerColour.V4);
     }
 
     [ScriptMethod(name: "双重吐息", eventType: EventTypeEnum.StartCasting,
@@ -557,12 +557,19 @@ public class 温达斯_第三巡行
 
     [ScriptMethod(name: "宇宙烈焰",
         eventType: EventTypeEnum.ActionEffect,
-        eventCondition: ["ActionId:regex:(49168)$"])] 
+        eventCondition: ["ActionId:regex:^(49167|49168|49169)$"])]
     public void 宇宙烈焰(Event @event, ScriptAccessory accessory)
     {
-        if (!ParseObjectId(@event["SourceId"], out var sourceId)) return;
+        if (!TryGetSourcePosition(@event, out var sourcePos)) return;
+        DrawCircleAt(accessory, sourcePos, 6, 1000, DangerColour.V4);
+    }
 
-        DrawSteel(accessory, "", sourceId, 6, 1000, 0, DangerColour.V4);
+    [ScriptMethod(name: "原子射线", eventType: EventTypeEnum.StartCasting, eventCondition: ["ActionId:regex:^49165$"])]
+    public void 原子射线(Event @event, ScriptAccessory accessory)
+    {
+        if (!ParseObjectId(@event["SourceId"], out var sourceId)) return;
+        if (!TryGetDurationMs(@event, out int durationMs)) return;
+        DrawRectOnOwner(accessory, sourceId, 15, 60, 0, 0, 0, durationMs, DangerColour.V4);
     }
 
     #endregion
@@ -792,12 +799,14 @@ public class 温达斯_第三巡行
     }
 
     /// <summary>画矩形绑在实体身上</summary>
-    private static void DrawRectOnOwner(ScriptAccessory a, ulong ownerId, float width, float length, int durationMs,
+    private static void DrawRectOnOwner(ScriptAccessory a, ulong ownerId, float width, float length, int x, int y,
+        int z, int durationMs,
         Vector4 color)
     {
         var dp = a.Data.GetDefaultDrawProperties();
         dp.Owner = ownerId;
         dp.Scale = new(width, length);
+        dp.Offset = new(x, y, z);
         dp.DestoryAt = durationMs;
         dp.Color = color;
         a.Method.SendDraw(DrawModeEnum.Default, DrawTypeEnum.Rect, dp);
