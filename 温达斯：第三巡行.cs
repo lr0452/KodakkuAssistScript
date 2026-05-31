@@ -13,7 +13,7 @@ namespace LRXR.Workspace.MyScripts;
     name: "温达斯_第三巡行",
     territorys: [1368],
     guid: "160bfc20-949d-4edb-9eba-39e27f6e7aa0",
-    version: "0.0.0.6",
+    version: "0.0.0.7",
     author: "LRXR",
     note: "初版\n" +
           "BOSS1、BOSS2、BOSS3、BOSS4画完，1.5、2.5小怪还未画\n" +
@@ -249,12 +249,12 @@ public class 温达斯_第三巡行
         eventCondition: ["Id:regex:^(01AC)$"])]
     public void 戈耳狄系统_大放电(Event @event, ScriptAccessory accessory)
     {
-        if (!ParseObjectId(@event["SourceId"], out var sourceId)) return;
-        戈耳狄系统_大放电_队列.Enqueue(sourceId);
+        if (!ParseObjectId(@event["TargetId"], out var targetId)) return;
+        戈耳狄系统_大放电_队列.Enqueue(targetId);
 
         if (戈耳狄系统_大放电_队列.Count <= 2)
         {
-            DrawSteel(accessory, $"戈耳狄系统_大放电_{sourceId}", sourceId, 18, 30000, 0, DangerColour.V4);
+            DrawSteel(accessory, $"戈耳狄系统_大放电_{targetId}", targetId, 18, 30000, 0, DangerColour.V4);
         }
     }
 
@@ -263,11 +263,17 @@ public class 温达斯_第三巡行
         eventCondition: ["ActionId:regex:^(50156)$"])]
     public void 戈耳狄系统_大放电_清除(Event @event, ScriptAccessory accessory)
     {
+        if (!ParseObjectId(@event["TargetId"], out var castingId)) return;
         if (戈耳狄系统_大放电_队列.Count == 0) return;
-        var sourceId = 戈耳狄系统_大放电_队列.Dequeue();
+        if (!戈耳狄系统_大放电_队列.Contains(castingId)) return;
 
-        accessory.Method.RemoveDraw($"戈耳狄系统_大放电_{sourceId}");
+        // 精确移除正在读条的那个，而非盲取队首
+        var remaining = new Queue<ulong>(戈耳狄系统_大放电_队列.Where(id => id != castingId));
+        戈耳狄系统_大放电_队列.Clear();
+        foreach (var id in remaining)
+            戈耳狄系统_大放电_队列.Enqueue(id);
 
+        accessory.Method.RemoveDraw($"戈耳狄系统_大放电_{castingId}");
 
         if (戈耳狄系统_大放电_队列.Count % 2 == 0 && 戈耳狄系统_大放电_队列.Count > 0)
         {
