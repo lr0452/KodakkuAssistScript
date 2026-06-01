@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 using Dalamud.Utility.Numerics;
 using KodakkuAssist.Module.GameEvent;
@@ -13,7 +14,7 @@ namespace LRXR.Workspace.MyScripts;
     name: "温达斯_第三巡行",
     territorys: [1368],
     guid: "160bfc20-949d-4edb-9eba-39e27f6e7aa0",
-    version: "0.0.0.7",
+    version: "0.0.0.8",
     author: "LRXR",
     note: "初版\n" +
           "BOSS1、BOSS2、BOSS3、BOSS4画完，1.5、2.5小怪还未画\n" +
