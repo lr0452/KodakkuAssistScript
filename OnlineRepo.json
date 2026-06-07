@@ -24,17 +24,5 @@
     "TerritoryIds": [
       1368
     ]
-  },
-  {
-    "Name": "妖星乱舞绝境战",
-    "Guid": "17d17154-54d8-4195-87af-b9a07f48ec19",
-    "Version": "0.0.0.1",
-    "Author": "LRXR",
-    "Repo": "",
-    "DownloadUrl": "https://raw.githubusercontent.com/lr0452/KodakkuAssistScript/refs/heads/master/%E5%A6%96%E6%98%9F%E4%B9%B1%E8%88%9E%E7%BB%9D%E5%A2%83%E6%88%98.cs",
-    "Note": "新建文件夹，写给朋友玩玩",
-    "UpdateInfo": "新建文件夹，写给朋友玩玩 ",
-    "TerritoryIds": [
-    ]
   }
 ]
